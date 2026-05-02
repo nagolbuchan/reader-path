@@ -48,8 +48,8 @@ No AI-generated summaries — just curated resources designed to make users acti
 
 ## 🗺️ Roadmap
 
-- [] Core course generation with CrewAI + Neo4j storage
-- [] Responsive frontend UI + basic progress tracking
+- [ ] Core course generation with CrewAI + Neo4j storage
+- [ ] Responsive frontend UI + basic progress tracking
 - [ ] User authentication & persistent course saving
 - [ ] Assignment submission & review system
 - [ ] Contrast view mode + perspective selection
