@@ -46,6 +46,17 @@ No AI-generated summaries — just curated resources designed to make users acti
 - Docker Compose (local development)  
 - Deployed on Vercel (frontend) + Railway/Render (backend) + Neo4j Aura  
 
+## 🗺️ Roadmap
+
+- [] Core course generation with CrewAI + Neo4j storage
+- [] Responsive frontend UI + basic progress tracking
+- [ ] User authentication & persistent course saving
+- [ ] Assignment submission & review system
+- [ ] Contrast view mode + perspective selection
+- [ ] Interactive course editor agent
+- [ ] Writing engagement gates & incentives
+- [ ] Public course sharing
+
 ## 🚀 Quick Start (Local Development)
 
 ### Prerequisites
