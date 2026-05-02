@@ -1,73 +1,75 @@
-# React + TypeScript + Vite
+# ReaderPath
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-View-brightgreen)](https://your-deployed-link.com) 
+[![GitHub license](https://img.shields.io/github/license/nagolbuchan/reader-path)](LICENSE)
 
-Currently, two official plugins are available:
+**A personalized learning platform that turns any topic into a structured course of real books and thoughtful written assignments.**  
+No AI-generated summaries — just curated resources designed to make users active readers and thinkers.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## ✨ Features
 
-## React Compiler
+### MVP (Current / In Progress)
+- Topic input → AI-generated structured course (4–6 modules) with real books and written research assignments
+- Multi-agent CrewAI system for intelligent book discovery (prioritizing quality sources)
+- Neo4j graph database for storing courses, modules, books, authors, and basic user progress
+- Personalized recommendations that avoid books the user has already read (when history exists)
+- Responsive React frontend with module navigation and rich-text assignment editor
+- Dynamic addition of newly discovered books to the shared graph database
+- Local development setup with Docker Compose
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### Planned / Future Features
+- **Contrast / Balanced View Mode** — Optional generation of opposing perspectives (e.g., Federalist vs Anti-Federalist book lists)
+- **User Bias / Perspective Selection** — Allow users to specify a side or viewpoint during topic entry when relevant
+- **Interactive Course Editor Agent** — Conversational agent for refining courses in real-time (add/remove books, adjust focus, etc.)
+- **Advanced Personalization & Gates** — Stronger reading history integration; require written responses (especially to opposing views) before unlocking new courses
+- **User-Facing Agents** — Email summaries, progress reports, and notifications
+- **Social Graph Features** — Connect users by shared books read; author grouping by genre/topic/argument stance
+- **Engagement Incentives** — Streaks, badges, or expanded access for consistent writing and intellectual engagement
+- **Public sharing** of courses and improved export options
 
-## Expanding the ESLint configuration
+## 🛠️ Tech Stack
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+**Frontend**  
+- React 19 + TypeScript + Vite  
+- Tailwind CSS + shadcn/ui  
+- TanStack Query + React Router  
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+**Backend**  
+- FastAPI (Python)  
+- CrewAI (multi-agent system)  
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+**Data & AI**  
+- Neo4j graph database  
+- OpenAI / Groq / Anthropic (via CrewAI)  
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+**DevOps**  
+- Docker Compose (local development)  
+- Deployed on Vercel (frontend) + Railway/Render (backend) + Neo4j Aura  
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## 🚀 Quick Start (Local Development)
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+### Prerequisites
+- Node.js 20+
+- Python 3.11+
+- Neo4j (Aura free tier or local)
+- OpenAI/Groq API key
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+### 1. Clone the repo
+```bash
+git clone https://github.com/nagolbuchan/reader-path.git
+cd reader-path
+
+### 2. Backend
+cd backend
+python -m venv venv
+source venv/bin/activate    # On Windows: venv\Scripts\activate
+pip install -r requirements.txt
+cp .env.example .env        # Add your API keys
+uvicorn main:app --reload
+
+### 3. Frontend
+cd ../frontend
+npm install
+npm run dev
+
+Open http://localhost:5173
