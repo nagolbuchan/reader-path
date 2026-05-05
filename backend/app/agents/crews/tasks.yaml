@@ -1,0 +1,34 @@
+librarian_task:
+  description: |
+    Conduct a thorough search for books on {topic}. Compile a list of **no more than 10 books**, 
+    including title, author, brief summary, and a purchase/read link.
+
+    Prioritize primary sources and authoritative texts. 
+    If fewer than 5 good books are found, slightly broaden the search while staying relevant.
+    Never include books without a valid link.
+  expected_output: "A structured list of books with title, author, brief summary, and link."
+  agent: librarian
+
+reviewer_task:
+  description: |
+    Review the list of books from the librarian. For each book:
+    - Verify it actually exists
+    - Assess its relevance to {topic}
+    - Provide feedback and suggest replacements for bad entries
+  expected_output: "A structured review with existence confirmation, relevance, and comments for each book."
+  agent: reviewer
+  context:
+    - librarian_task
+
+course_creator_task:
+  description: |
+    Using the verified book list, create a comprehensive course on {topic}.
+    Break it into 4-6 logical modules. For each module include:
+    - Module title
+    - Learning objectives
+    - Assigned readings (with links)
+    - Thoughtful written/research assignments
+  expected_output: "A valid JSON object containing the full course structure with modules, readings, and assignments."
+  agent: course_creator
+  context:
+    - reviewer_task
