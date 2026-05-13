@@ -40,6 +40,14 @@ class CourseRepository(BaseRepository):
 
         return result[0]['m'] if result else None
     
+    async def get_user_courses(self, user_id: str) -> List[Dict]:
+        query = """
+        MATCH (u:User {user_id: $user_id})-[:CREATED]->(c:Course)
+        RETURN c
+        """
+        result = await self.execute_query(query, {"user_id": user_id})
+        return [record['c'] for record in result]
+
     async def get_course(self, course_id: str) -> Optional[Dict]:
         query = """
         MATCH (c:Course {course_id: $course_id})
@@ -54,3 +62,22 @@ class CourseRepository(BaseRepository):
         course_data = result[0]['c']
         course_data['modules'] = result[0]['modules']
         return course_data
+    
+    async def get_module(self, module_id: str) -> Optional[Dict]:
+        query = """
+        MATCH (m:Module {module_id: $module_id})
+        RETURN m
+        """
+        result = await self.execute_query(query, {"module_id": module_id})
+        return result[0]['m'] if result else None
+
+    async def delete_course_and_modules(self, course_id: str) -> bool:
+        query = """
+        MATCH (c:Course {course_id: $course_id})
+        OPTIONAL MATCH (c)-[:HAS_MODULE]->(m:Module)
+        DELETE m
+        DELETE c
+        RETURN true
+        """
+        result = await self.execute_query(query, {"course_id": course_id})
+        return bool(result)
