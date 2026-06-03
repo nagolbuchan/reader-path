@@ -31,6 +31,9 @@ api.interceptors.response.use(
 
 //Common API functions
 
+//You need to be able to handle the user information in the context.  
+//These functions require the user id.  You can get this from Clerk/Auth.js and pass it to the API functions as needed.
+//Set up clerk/auth.js to provide user context throughout the app, and then use that context to get the user ID when calling these API functions.
 export const graphApi = {
     getUserGraph: async () => {
         const response = await api.get('/user-graph'); //TODO - confirm endpoint

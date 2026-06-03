@@ -1,7 +1,8 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { ForceGraph2D } from 'react-force-graph';
 import { useQuery } from '@tanstack/react-query';
-import { api } from '../lib/api'; // TODO
+import { graphApi } from './lib/api';
+import { api } from './lib/api'; // TODO
 
 interface GraphNode {
   id: string;
@@ -38,11 +39,8 @@ export default function App() {
   //Next, need data.  Fetch the user's graph data.  
   const { data, isLoading, error } = useQuery({
     queryKey: ['userGraph'],
-    queryFn: async () => {
-    const response = await api.get('/user-graph'); //TODO - I don't think you have an endpoint for this yet. 
-    console.log('Fetched graph data:', response.data); // Log the raw response data for debugging
-    return response.data;
-    }
+    queryFn: graphApi.getUserGraph,
+    staleTime: 1000 * 60 * 5, // Cache data for 5 minutes
   });
 
   //When data is loaded, set it to state.
