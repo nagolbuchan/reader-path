@@ -37,6 +37,7 @@ api.interceptors.response.use(
 export const graphApi = {
     getUserGraph: async () => {
         const response = await api.get('/user-graph'); //TODO - confirm endpoint
+        console.log('Graph API Response:', response.data); // Log the response to check its structure
         return response.data;
     },
 

@@ -2,7 +2,7 @@
 # This service will handle the topic entry and initiate the CrewAI agents' search for books related to the topic, as well as the organization of those books into a course structure.
 
 # CrewAI integration for course generation
-def generate_course_from_topic(topic: str):
+# def generate_course_from_topic(topic: str):
 
 from backend.app.agents.crews.crew import create_crew
 
