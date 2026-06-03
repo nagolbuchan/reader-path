@@ -36,10 +36,11 @@ export default function App() {
   const graphRef = useRef<any>(null);
 
   //Next, need data.  Fetch the user's graph data.  
-  const { data, isLoading, error } = useQuery<UserGraphResponse>({
+  const { data, isLoading, error } = useQuery({
     queryKey: ['userGraph'],
     queryFn: async () => {
     const response = await api.get('/user-graph'); //TODO - I don't think you have an endpoint for this yet. 
+    console.log('Fetched graph data:', response.data); // Log the raw response data for debugging
     return response.data;
     }
   });
@@ -62,6 +63,7 @@ export default function App() {
 
   //How do you handle different node type click actions? 
   //Is this a situation for an event emitter or a context menu?
+
   const handleNodeClick = useCallback((node: GraphNode) => {
     setSelectedNode(node);
 
@@ -72,7 +74,7 @@ export default function App() {
       // graphRef.current.zoom(4, 1000);
     }
 
-  })
+  }, [])
 
   //This is just a starting point. 
   const getNodeColor = (node: GraphNode) => {
