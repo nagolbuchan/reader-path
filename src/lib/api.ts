@@ -12,22 +12,22 @@ export const api = axios.create({
 });
 
 // Add a request interceptor to include authentication token if available
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('auth_token'); // or use Clerk/Auth.js token
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
+// api.interceptors.request.use((config) => {
+//   const token = localStorage.getItem('auth_token'); // or use Clerk/Auth.js token
+//   if (token) {
+//     config.headers.Authorization = `Bearer ${token}`;
+//   }
+//   return config;
+// });
 
 // Add a response interceptor to handle errors globally
-api.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    console.error('API Error:', error);
-    return Promise.reject(error);
-  }
-);
+// api.interceptors.response.use(
+//   (response) => response,
+//   (error) => {
+//     console.error('API Error:', error);
+//     return Promise.reject(error);
+//   }
+// );
 
 //Common API functions
 
@@ -36,8 +36,12 @@ api.interceptors.response.use(
 //Set up clerk/auth.js to provide user context throughout the app, and then use that context to get the user ID when calling these API functions.
 export const graphApi = {
     getUserGraph: async () => {
-        const response = await api.get('/user-graph'); //TODO - confirm endpoint
+        console.log('------- getUserGraph -------')
+        console.log('Fetching user graph data from API...');
+        const response = await api.get('/graph/user-graph'); //TODO - confirm endpoint
+        console.log('response: ', response)
         console.log('Graph API Response:', response.data); // Log the response to check its structure
+        console.log('------- -------- -------')
         return response.data;
     },
 

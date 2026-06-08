@@ -1,8 +1,9 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
-import { ForceGraph2D } from 'react-force-graph';
+import ForceGraph2D from 'react-force-graph-2d';
 import { useQuery } from '@tanstack/react-query';
 import { graphApi } from './lib/api';
 import { api } from './lib/api'; // TODO
+import { error } from 'three/src/Three.WebGPU.Nodes.js';
 
 interface GraphNode {
   id: string;
@@ -37,14 +38,19 @@ export default function App() {
   const graphRef = useRef<any>(null);
 
   //Next, need data.  Fetch the user's graph data.  
-  const { data, isLoading, error } = useQuery({
+  const { data, isPending, error } = useQuery({
     queryKey: ['userGraph'],
-    queryFn: graphApi.getUserGraph,
+    queryFn: () => {
+      console.log('TESTING API CALL...');
+      return graphApi.getUserGraph();
+    },
     staleTime: 1000 * 60 * 5, // Cache data for 5 minutes
   });
-
+  console.log('useQuery result:', { data, isPending });
   //When data is loaded, set it to state.
   useEffect(() => {
+    console.log('useEffect triggered with data:', data);
+    console.log('Graph data fetched:', data);
     if (data) {
       //Satisfy the shape of the data defined in the GraphData interface. 
       //TODO: Confirm the actual shape of the data returned by the API.
@@ -98,7 +104,7 @@ export default function App() {
   //   );
   // }
 
-  if (isLoading) {
+  if (isPending) {
     return <div className="flex h-screen items-center justify-center">Loading your learning graph...</div>;
   }
 

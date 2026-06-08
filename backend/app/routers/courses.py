@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends
-from app.core.database import get_neo4j_driver
+from app.core.database import get_driver
 from app.repositories.course_repo import CourseRepository
 
 #Defines endpoint with prefix /courses.  

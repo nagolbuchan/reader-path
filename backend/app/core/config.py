@@ -9,14 +9,14 @@ class Settings(BaseSettings):
 
     # OpenAI / LLM Settings
     # Make switching between models easy by just changing the environment variable
-    OPENAI_API_KEY: str
+    OPENAI_API_KEY: str = "Not really a key, just a placeholder for testing"
     OPENAI_MODEL: str = "gpt-4o-mini"        # You can change to gpt-4o if needed
     # TEMPERATURE: float = 0.7 # Optional: Adjust the creativity of the model's responses (0.0 to 1.0)
 
     # Neo4j Settings
-    NEO4J_URI: str
-    NEO4J_USERNAME: str = "neo4j"
-    NEO4J_PASSWORD: str
+    NEO4J_URI: str ="neo4j+s://cbb6c515.databases.neo4j.io"
+    NEO4J_USERNAME: str = "cbb6c515"
+    NEO4J_PASSWORD: str = "oUYm6yVCs_i_P9IOqZsDJyJIu81_Z909zv8AARO29A8"
 
     # Optional
     RATE_LIMIT_PER_MINUTE: int = 10
