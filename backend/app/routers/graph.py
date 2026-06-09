@@ -20,9 +20,9 @@ async def get_my_learning_graph(
     print('get_my_learning_graph')
     """Main endpoint for the interactive homepage graph"""
     service = GraphService(driver)
-    graph = service.get_user_graph(4) # Replace with current_user.id when auth is set up
+    graph = await service.get_user_graph(7) # Replace with current_user.id when auth is set up
     print("Graph retrieved:", graph)
-    return { 1, 4, 7}
+    return graph
 
 
 @router.get("/courses/{course_id}/subgraph")
