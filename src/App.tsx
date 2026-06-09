@@ -181,7 +181,7 @@ export default function App() {
       {/* <div className="flex-1 relative"> */}
         <ForceGraph2D 
           ref={graphRef}
-          graphData={graphData}
+          graphData={graphDataMemo}
           backgroundColor="#111111"
         
           // Node Customizations mapped from Neo4j properties
