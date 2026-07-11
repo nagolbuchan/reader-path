@@ -18,7 +18,7 @@ import '@xyflow/react/dist/style.css';
 const SimpleJourneyNode = ({ id, data }: { id: string; data: any }) => {
     const { type, name, expandedNodeIds = [] } = data;
     
-    // 1. DETERMINE IF THIS NODE IS CURRENTLY ACTIVE/SELECTED
+    // 1. DETERMINE IF THIS NODE IS CURRENTLY ACTIVE/5SELECTED
     const isActive = expandedNodeIds.includes(id);
 
     const headerThemes = {

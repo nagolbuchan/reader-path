@@ -36,12 +36,7 @@ export const api = axios.create({
 //Set up clerk/auth.js to provide user context throughout the app, and then use that context to get the user ID when calling these API functions.
 export const graphApi = {
     getUserGraph: async () => {
-        console.log('------- getUserGraph -------')
-        console.log('Fetching user graph data from API...');
         const response = await api.get('/graph/user-graph'); //TODO - confirm endpoint
-        console.log('response: ', response)
-        console.log('Graph API Response:', response.data); // Log the response to check its structure
-        console.log('------- -------- -------')
         return response.data;
     },
 
@@ -63,4 +58,12 @@ export const courseApi = {
     }
 }
 
+export const crewApi = {
+    kickoffCrew: async (topic: string) => {
+        console.log('kickoffCrew called with topic:', topic);
+        const response = await api.get(`/crew/kickoff?topic=${encodeURIComponent(topic)}`);
+        console.log('kickoffCrew response:', response.data);
+        return response.data;
+    }
+}
 export default api;

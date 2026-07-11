@@ -4,7 +4,7 @@
 # CrewAI integration for course generation
 # def generate_course_from_topic(topic: str):
 
-from backend.app.agents.crews.crew import create_crew
+from app.agents.crews.crew import ReaderPathCrew
 
 class CourseGenerationService:
 	"""
@@ -18,7 +18,10 @@ class CourseGenerationService:
 		Given a topic, use CrewAI agents to research books and generate a course structure.
 		Returns the course structure as produced by the CrewAI pipeline.
 		"""
-		crew = create_crew(topic)
+		print('generate_course_from_topic called with topic:', topic)
+		crew_instance = ReaderPathCrew()
+		crew = crew_instance.reader_path_crew()
 		result = crew.kickoff(inputs={"topic": topic})
+		
 		return result
 

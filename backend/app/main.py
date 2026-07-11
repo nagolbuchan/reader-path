@@ -2,7 +2,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.database import init_driver, close_driver
-from app.routers import courses, graph, users
+from app.routers import courses, graph, users, crew
 
 app = FastAPI(title="Topic-to-Course")
 
@@ -10,6 +10,7 @@ app = FastAPI(title="Topic-to-Course")
 # app.include_router(users.router)
 # app.include_router(courses.router)
 app.include_router(graph.router)
+app.include_router(crew.router)
 
 # CORS (important for Vite frontend)
 app.add_middleware(

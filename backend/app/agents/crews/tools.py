@@ -1,4 +1,5 @@
-from crewai import tool
+# Option 1 (most common now)
+from crewai.tools import tool
 from typing import Optional
 
 @tool
