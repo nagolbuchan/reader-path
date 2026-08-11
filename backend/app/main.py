@@ -1,33 +1,46 @@
-# app/main.py
+import os
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from dotenv import load_dotenv
+
+from app.core.config import settings
 from app.core.database import init_driver, close_driver
-from app.routers import courses, graph, users, crew
+from app.routers import auth, courses, crew, graph
 
-app = FastAPI(title="Topic-to-Course")
+load_dotenv()
 
-# Include routers
-# app.include_router(users.router)
-# app.include_router(courses.router)
+# Ensure CrewAI / tools see keys from Settings
+if settings.OPENAI_API_KEY:
+    os.environ["OPENAI_API_KEY"] = settings.OPENAI_API_KEY
+if settings.GOOGLE_BOOKS_API_KEY:
+    os.environ["GOOGLE_BOOKS_API_KEY"] = settings.GOOGLE_BOOKS_API_KEY
+
+app = FastAPI(title="ReaderPath")
+
+app.include_router(auth.router)
+app.include_router(courses.router)
 app.include_router(graph.router)
 app.include_router(crew.router)
 
-# CORS (important for Vite frontend)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],  # Vite default ports
-    allow_credentials=True, #change to True if you need to send cookies or auth headers
+    allow_origins=[settings.FRONTEND_URL, "http://localhost:5173"],
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 @app.on_event("startup")
 async def startup_event():
     await init_driver()
 
+
 @app.on_event("shutdown")
 async def shutdown_event():
     await close_driver()
+
 
 @app.get("/")
 async def root():

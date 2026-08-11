@@ -1,24 +1,35 @@
 from pydantic_settings import BaseSettings
 from typing import Optional
 
+
 class Settings(BaseSettings):
-    # API Settings
-    PROJECT_NAME: str = "BookFinder"
+    PROJECT_NAME: str = "ReaderPath"
     API_V1_STR: str = "/api"
     DEBUG: bool = True
 
-    # OpenAI / LLM Settings
-    # Make switching between models easy by just changing the environment variable
-    OPENAI_API_KEY: str = "Not really a key, just a placeholder for testing"
-    OPENAI_MODEL: str = "gpt-4o-mini"        # You can change to gpt-4o if needed
-    # TEMPERATURE: float = 0.7 # Optional: Adjust the creativity of the model's responses (0.0 to 1.0)
+    # OpenAI / LLM
+    OPENAI_API_KEY: str = ""
+    OPENAI_MODEL: str = "gpt-4o-mini"
+    TEMPERATURE: float = 0.0
 
-    # Neo4j Settings
-    NEO4J_URI: str ="neo4j+s://cbb6c515.databases.neo4j.io"
-    NEO4J_USERNAME: str = "cbb6c515"
-    NEO4J_PASSWORD: str = "oUYm6yVCs_i_P9IOqZsDJyJIu81_Z909zv8AARO29A8"
+    # Neo4j
+    NEO4J_URI: str = "bolt://localhost:7687"
+    NEO4J_USERNAME: str = "neo4j"
+    NEO4J_PASSWORD: str = ""
 
-    # Optional
+    # Auth (Google OAuth + JWT cookie)
+    GOOGLE_CLIENT_ID: str = ""
+    GOOGLE_CLIENT_SECRET: str = ""
+    AUTH_SECRET: str = "change-me-in-production"
+    FRONTEND_URL: str = "http://localhost:5173"
+    BACKEND_URL: str = "http://localhost:8000"
+    SESSION_COOKIE_NAME: str = "readerpath_session"
+    SESSION_MAX_AGE_SECONDS: int = 60 * 60 * 24 * 7  # 7 days
+
+    # External APIs
+    SERPER_API_KEY: Optional[str] = None
+    GOOGLE_BOOKS_API_KEY: Optional[str] = None
+
     RATE_LIMIT_PER_MINUTE: int = 10
 
     class Config:

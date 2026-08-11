@@ -1,103 +1,141 @@
-from typing import List, Dict, Optional
-from unittest import result
+from typing import Any, Dict, List, Optional
+
 from app.repositories.base_repo import BaseRepository
-# from app.models.graph import Graph # Does not exist, but probably a good idea. 
+
 
 class GraphRepository(BaseRepository):
-    # This is just a test cypher query so i can get familiar with the data. 
-
-    async def get_user_graph(self, user_id: int = 7) -> Dict:
-        query = """
-            MATCH path = (u:User {userId: $user_id})-[:READ]->(b:Book)-[:IN_GENRE]->(g:Genre)
-            RETURN path
+    async def get_user_graph(self, user_id: str) -> Dict[str, List]:
         """
-        #-[:IN_GENRE]->(g:Genre)
-        # This calls BaseRepository.execute_query and gives a standard Python list of dicts
-        results = await self.execute_query(query, {"user_id": user_id})
+        Return learning-journey graph:
+        User -> Course -> Module -> Book | Assignment
+        Plus Topic and Author nodes when present.
+        """
+        query = """
+        MATCH (u:User {user_id: $user_id})
+        OPTIONAL MATCH (u)-[:CREATED]->(c:Course)
+        OPTIONAL MATCH (c)-[:HAS_MODULE]->(m:Module)
+        OPTIONAL MATCH (m)-[:ASSIGNS_READING]->(b:Book)
+        OPTIONAL MATCH (m)-[:HAS_ASSIGNMENT]->(a:Assignment)
+        OPTIONAL MATCH (c)-[:ABOUT]->(t:Topic)
+        OPTIONAL MATCH (b)-[:WRITTEN_BY]->(auth:Author)
+        RETURN u, collect(DISTINCT c) AS courses,
+               collect(DISTINCT m) AS modules,
+               collect(DISTINCT b) AS books,
+               collect(DISTINCT a) AS assignments,
+               collect(DISTINCT t) AS topics,
+               collect(DISTINCT auth) AS authors
+        """
+        rows = await self.execute_query(query, {"user_id": user_id})
+        if not rows:
+            return {"nodes": [], "relationships": []}
 
-        return None
-        # nodes_map = {}
-        # relationships = []
+        row = rows[0]
+        user = row.get("u")
+        if not user:
+            return {"nodes": [], "relationships": []}
 
-        # # Helper function to get consistent string IDs from raw dictionary properties
-        # def get_node_id_from_dict(item: dict) -> str:
-        #     if 'userId' in item:
-        #         return f"user_{item['userId']}"
-        #     elif 'bookId' in item:
-        #         return f"book_{item['bookId']}"
-        #     elif 'genre_id' in item:
-        #         return f"genre_{item['genre_id']}"
-        #     return None
+        nodes_map: Dict[str, Dict[str, Any]] = {}
+        relationships: List[Dict[str, str]] = []
 
-        # for record in results:
-        #     # result.data() converts the 'path' return variable into a native Python list
-        #     path_list = record.get("path")
-        #     if not isinstance(path_list, list):
-        #         continue
+        def add_node(node_id: str, node_type: str, label: str, properties: Any = None):
+            if node_id not in nodes_map:
+                nodes_map[node_id] = {
+                    "id": node_id,
+                    "type": node_type,
+                    "label": label,
+                    "properties": properties or {},
+                }
 
-        #     # 1. Process all nodes (found at all even indices: 0, 2, 4)
-        #     for i in range(0, len(path_list), 2):
-        #         node_item = path_list[i]
-        #         if not isinstance(node_item, dict):
-        #             continue
+        user_props = dict(user)
+        user_node_id = f"user_{user_props.get('user_id')}"
+        add_node(
+            user_node_id,
+            "User",
+            user_props.get("name") or user_props.get("email") or "You",
+            user_props,
+        )
 
-        #         node_id = get_node_id_from_dict(node_item)
-        #         if not node_id:
-        #             continue
+        # Re-query relationships explicitly for clean edge list
+        rel_query = """
+        MATCH (u:User {user_id: $user_id})
+        OPTIONAL MATCH (u)-[:CREATED]->(c:Course)
+        OPTIONAL MATCH (c)-[:HAS_MODULE]->(m:Module)
+        OPTIONAL MATCH (m)-[:ASSIGNS_READING]->(b:Book)
+        OPTIONAL MATCH (m)-[:HAS_ASSIGNMENT]->(a:Assignment)
+        OPTIONAL MATCH (c)-[:ABOUT]->(t:Topic)
+        OPTIONAL MATCH (b)-[:WRITTEN_BY]->(auth:Author)
+        RETURN u, c, m, b, a, t, auth
+        """
+        rel_rows = await self.execute_query(rel_query, {"user_id": user_id})
 
-        #         # Determine the frontend structural details
-        #         if 'userId' in node_item:
-        #             node_type = "User"
-        #             label = f"{node_item.get('firstName', '')} {node_item.get('lastName', '')}".strip()
-        #         elif 'bookId' in node_item:
-        #             node_type = "Book"
-        #             label = node_item.get('title', 'Unknown Book')
-        #         elif 'genre_id' in node_item:
-        #             node_type = "Genre"
-        #             label = node_item.get('genre', 'Unknown Genre')
+        for record in rel_rows:
+            c = record.get("c")
+            m = record.get("m")
+            b = record.get("b")
+            a = record.get("a")
+            t = record.get("t")
+            auth = record.get("auth")
 
-        #         if node_id not in nodes_map:
-        #             nodes_map[node_id] = {
-        #                 "id": node_id,
-        #                 "type": node_type,
-        #                 "label": label,
-        #                 "properties": node_item
-        #             }
+            if c:
+                c_props = dict(c)
+                c_id = f"course_{c_props.get('course_id')}"
+                add_node(c_id, "Course", c_props.get("title") or "Course", c_props)
+                edge = {"from": user_node_id, "to": c_id, "type": "CREATED"}
+                if edge not in relationships:
+                    relationships.append(edge)
 
-        #     # 2. Process all relationships (found at all odd indices: 1, 3)
-        #     for i in range(1, len(path_list), 2):
-        #         # In result.data(), the relationship index contains relationship properties.
-        #         # The actual source node is right before it (i-1), and target node is right after it (i+1).
-        #         source_node_dict = path_list[i-1]
-        #         target_node_dict = path_list[i+1]
+                if t:
+                    t_props = dict(t)
+                    t_id = f"topic_{t_props.get('slug') or t_props.get('name')}"
+                    add_node(t_id, "Topic", t_props.get("name") or "Topic", t_props)
+                    edge = {"from": c_id, "to": t_id, "type": "ABOUT"}
+                    if edge not in relationships:
+                        relationships.append(edge)
 
-        #         if not (isinstance(source_node_dict, dict) and isinstance(target_node_dict, dict)):
-        #             continue
+            if c and m:
+                m_props = dict(m)
+                m_id = f"module_{m_props.get('module_id')}"
+                add_node(m_id, "Module", m_props.get("title") or "Module", m_props)
+                c_id = f"course_{dict(c).get('course_id')}"
+                edge = {"from": c_id, "to": m_id, "type": "HAS_MODULE"}
+                if edge not in relationships:
+                    relationships.append(edge)
 
-        #         source_id = get_node_id_from_dict(source_node_dict)
-        #         target_id = get_node_id_from_dict(target_node_dict)
+            if m and b:
+                b_props = dict(b)
+                b_id = f"book_{b_props.get('book_id') or b_props.get('title')}"
+                add_node(b_id, "Book", b_props.get("title") or "Book", b_props)
+                m_id = f"module_{dict(m).get('module_id')}"
+                edge = {"from": m_id, "to": b_id, "type": "ASSIGNS_READING"}
+                if edge not in relationships:
+                    relationships.append(edge)
 
-        #         if source_id and target_id:
-        #             # If your backend requires the relationship type string (e.g. "READ"),
-        #             # path_list[i] for a relationship can sometimes just be the raw properties dict.
-        #             # If you need a fallback name, we can check standard keys or hardcode based on position.
-        #             rel_type = "CONNECTED_TO"
-        #             if "userId" in source_node_dict and "bookId" in target_node_dict:
-        #                 rel_type = "READ"
-        #             elif "bookId" in source_node_dict and "genre_id" in target_node_dict:
-        #                 rel_type = "IN_GENRE"
+            if m and a:
+                a_props = dict(a)
+                a_id = f"assignment_{a_props.get('assignment_id')}"
+                add_node(
+                    a_id,
+                    "Assignment",
+                    a_props.get("title") or "Assignment",
+                    a_props,
+                )
+                m_id = f"module_{dict(m).get('module_id')}"
+                edge = {"from": m_id, "to": a_id, "type": "HAS_ASSIGNMENT"}
+                if edge not in relationships:
+                    relationships.append(edge)
 
-        #             rel_obj = {
-        #                 "from": source_id,
-        #                 "to": target_id,
-        #                 "type": rel_type
-        #             }
+            if b and auth:
+                auth_props = dict(auth)
+                auth_id = f"author_{auth_props.get('name')}"
+                add_node(
+                    auth_id,
+                    "Author",
+                    auth_props.get("name") or "Author",
+                    auth_props,
+                )
+                b_id = f"book_{dict(b).get('book_id') or dict(b).get('title')}"
+                edge = {"from": b_id, "to": auth_id, "type": "WRITTEN_BY"}
+                if edge not in relationships:
+                    relationships.append(edge)
 
-        #             # Deduplicate connections to keep React Flow running smoothly
-        #             if rel_obj not in relationships:
-        #                 relationships.append(rel_obj)
-
-        # return {
-        #     "nodes": list(nodes_map.values()),
-        #     "relationships": relationships
-        # }
+        return {"nodes": list(nodes_map.values()), "relationships": relationships}

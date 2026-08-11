@@ -1,8 +1,18 @@
 from crewai import Agent, Crew, Process, Task
 from crewai.project import CrewBase, agent, crew, task
 from crewai_tools import SerperDevTool
+from langchain_openai import ChatOpenAI
+from app.agents.crews.tools import search_books_by_topic
+# from app.core.config import settings
+# import os
 
 from .tools import ask_human
+
+# llm = ChatOpenAI(
+#     model="gpt-4o-mini",          # or gpt-4o
+#     temperature=0.0,
+#     openai_api_key=settings.OPENAI_API_KEY   # ← Pass it here
+# )
 
 @CrewBase
 class ReaderPathCrew:
@@ -16,6 +26,7 @@ class ReaderPathCrew:
         return Agent(
             config=self.agents_config['librarian_assistant'],
             verbose=True,
+            llm="gpt-4o-mini",
             # tools=[ask_human]
         )
 
@@ -24,31 +35,34 @@ class ReaderPathCrew:
         return Agent(
             config=self.agents_config['librarian'],
             verbose=True,
-            tools=[SerperDevTool()]
+            llm="gpt-4o-mini",
+            tools=[search_books_by_topic]
         )
 
-    @agent
-    def reviewer(self) -> Agent:
-        return Agent(
-            config=self.agents_config['reviewer'],
-            verbose=True,
-            tools=[SerperDevTool()]
-        )
+    # @agent
+    # def reviewer(self) -> Agent:
+    #     return Agent(
+    #         config=self.agents_config['reviewer'],
+    #         verbose=True,
+    #         llm="gpt-4o-mini",
+    #         tools=[SerperDevTool()]
+        # )
 
     @agent
     def course_creator(self) -> Agent:
         return Agent(
             config=self.agents_config['course_creator'],
-            verbose=True
+            verbose=True,
+            llm="gpt-4o-mini",
         )
 
     @task
     def librarian_task(self) -> Task:
         return Task(config=self.tasks_config['librarian_task'])
 
-    @task
-    def reviewer_task(self) -> Task:
-        return Task(config=self.tasks_config['reviewer_task'])
+    # @task
+    # def reviewer_task(self) -> Task:
+    #     return Task(config=self.tasks_config['reviewer_task'])
 
     @task
     def course_creator_task(self) -> Task:
@@ -61,5 +75,5 @@ class ReaderPathCrew:
             tasks=self.tasks,
             process=Process.sequential,
             verbose=True,
-            memory=True,
+            # memory=True,
         )

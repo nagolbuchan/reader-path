@@ -1,47 +1,123 @@
-import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { Routes, Route, useNavigate, useParams } from 'react-router-dom';
 import { graphApi } from './lib/api';
+import { useAuth } from './lib/auth';
 import HomeGraph from './components/HomeGraph';
-import { PromptInput } from './components/PromptComponent';
 import { HeroSection } from './components/HeroSection';
-// import { api } from './lib/api'; // TODO
-// import { error } from 'three/src/Three.WebGPU.Nodes.js';
 
-export default function App() {
-  const [rawData, setRawData] = useState<any>(undefined); // Raw data from API
-  // // const [graphData, setGraphData] = useState<GraphData>({ nodes: [], links: [] });
-  // // const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
-  // // const graphRef = useRef<any>(null);
+function HomePage() {
+  const { user, isLoading: authLoading, isAuthenticated, logout } = useAuth();
+  const [forceHero, setForceHero] = useState(false);
+  const navigate = useNavigate();
 
-  // const { data, isPending, error } = useQuery({
-  //   queryKey: ['userGraph'],
-  //   queryFn: () => {
-  //     return graphApi.getUserGraph();
-  //   },
-  //   staleTime: 1000 * 60 * 5, // Cache data for 5 minutes
-  // });
-  // console.log('useQuery result:', { data, isPending });
+  const {
+    data: graphData,
+    isPending,
+    error,
+    refetch,
+  } = useQuery({
+    queryKey: ['userGraph', user?.user_id],
+    queryFn: graphApi.getUserGraph,
+    enabled: isAuthenticated,
+    staleTime: 1000 * 60 * 2,
+    retry: false,
+  });
 
-  // useEffect(() => {
-  //   if (data) {
-  //     //Satisfy the shape of the data defined in the GraphData interface. 
-  //     //TODO: Confirm the actual shape of the data returned by the API.
-  //     setRawData(data);
-  //   }
-  // }, [data]);
+  if (authLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-neutral-950 text-zinc-400">
+        Loading…
+      </div>
+    );
+  }
 
-  // if (isPending) {
-  //   return <div className="flex h-screen items-center justify-center">Loading your learning graph...</div>;
-  // }
+  const hasCourses =
+    Boolean(graphData?.nodes?.some((n) => n.type === 'Course')) &&
+    Boolean(graphData?.nodes?.length);
 
-  // if (error) {
-  //   return <div>Error: {error.message}</div>;
-  // }
-//Center the graph on the page and set a dark background color that matches the canvas. The padding ensures that the graph doesn't touch the edges of the screen, providing a better visual experience.
+  if (isAuthenticated && !forceHero && isPending) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-neutral-950 text-zinc-400">
+        Loading your learning graph…
+      </div>
+    );
+  }
+
+  if (isAuthenticated && !forceHero && error) {
+    // New users with no graph yet may 401/empty — fall through to hero if no courses
+  }
+
+  if (isAuthenticated && !forceHero && hasCourses && graphData) {
+    const shareUrl = `${window.location.origin}/u/${encodeURIComponent(user!.user_id)}`;
+    return (
+      <HomeGraph
+        graphData={graphData}
+        shareUrl={shareUrl}
+        onCreateCourse={() => setForceHero(true)}
+        onLogout={logout}
+      />
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-neutral-950 flex items-center justify-center p-8">
-        {rawData ? <HomeGraph graphData={rawData} /> : <HeroSection /> }
-  </div>
+    <div className="min-h-screen bg-neutral-950">
+      {isAuthenticated && hasCourses && (
+        <div className="absolute top-6 left-6 z-30">
+          <button
+            onClick={() => {
+              setForceHero(false);
+              navigate('/');
+            }}
+            className="px-3 py-2 text-xs rounded-xl bg-slate-800 text-slate-200 border border-slate-700"
+          >
+            Back to graph
+          </button>
+        </div>
+      )}
+      <HeroSection
+        onCourseSaved={() => {
+          setForceHero(false);
+          refetch();
+        }}
+      />
+    </div>
   );
 }
 
+function PublicGraphPage() {
+  const { userId } = useParams<{ userId: string }>();
+  const { data, isPending, error } = useQuery({
+    queryKey: ['publicGraph', userId],
+    queryFn: () => graphApi.getPublicUserGraph(userId!),
+    enabled: Boolean(userId),
+    retry: false,
+  });
+
+  if (isPending) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-neutral-950 text-zinc-400">
+        Loading shared graph…
+      </div>
+    );
+  }
+
+  if (error || !data) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-neutral-950 text-rose-400">
+        Shared graph not found.
+      </div>
+    );
+  }
+
+  return <HomeGraph graphData={data} readOnly />;
+}
+
+export default function App() {
+  return (
+    <Routes>
+      <Route path="/" element={<HomePage />} />
+      <Route path="/u/:userId" element={<PublicGraphPage />} />
+    </Routes>
+  );
+}

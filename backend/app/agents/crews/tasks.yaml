@@ -9,17 +9,6 @@ librarian_task:
   expected_output: "A structured list of books with title, author, brief summary, and link."
   agent: librarian
 
-reviewer_task:
-  description: |
-    Review the list of books from the librarian. For each book:
-    - Verify it actually exists
-    - Assess its relevance to {topic}
-    - Provide feedback and suggest replacements for bad entries
-  expected_output: "A structured review with existence confirmation, relevance, and comments for each book."
-  agent: reviewer
-  context:
-    - librarian_task
-
 course_creator_task:
   description: |
     Using the verified book list, create a comprehensive course on {topic}.
@@ -28,7 +17,26 @@ course_creator_task:
     - Learning objectives
     - Assigned readings (with links)
     - Thoughtful written/research assignments
+
+    Return ONLY a valid JSON object (no markdown) with this exact shape:
+    {
+      "title": "string",
+      "description": "string",
+      "topic": "{topic}",
+      "modules": [
+        {
+          "module_title": "string",
+          "learning_objectives": ["string"],
+          "assigned_readings": [
+            {"title": "string", "authors": "string", "link": "string"}
+          ],
+          "assignments": [
+            {"assignment_title": "string", "description": "string"}
+          ]
+        }
+      ]
+    }
   expected_output: "A valid JSON object containing the full course structure with modules, readings, and assignments."
   agent: course_creator
   context:
-    - reviewer_task
+    - librarian_task

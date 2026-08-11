@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, ChangeEvent, KeyboardEvent } from "react";
+import React, { useState, useRef, useEffect, type ChangeEvent, type KeyboardEvent } from "react";
 
 interface PromptInputProps {
   onSend: (message: string) => void;

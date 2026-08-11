@@ -153,7 +153,7 @@ export default function FlowContent({ graphData }: FlowContentProps) {
         minZoom={0.3}
         maxZoom={2.5}
         >
-        <Background color="#334155" gap={24} size={1} opacity={0.15} />
+        <Background color="#334155" gap={24} size={1} />
         <Controls position="bottom-right" className="!bg-white !border-slate-200 !text-slate-700 shadow-md" />
     </ReactFlow>
   );
