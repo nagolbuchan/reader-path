@@ -1,31 +1,27 @@
-# Core Framework
-fastapi==0.115.0
-uvicorn[standard]==0.30.6
+# Core Framework (aligned with CrewAI 1.15 / MCP stack)
+fastapi>=0.128.0
+uvicorn[standard]>=0.31.1,<1
 
 # Database
-neo4j==5.25.0
+neo4j>=5.25.0,<6
 
-# Data Validation
-pydantic==2.9.2
-pydantic-settings==2.5.2
+# Data Validation (CrewAI 1.15 requires pydantic>=2.11.9,<2.13)
+pydantic>=2.11.9,<2.13
+pydantic-settings>=2.10.1,<3
 
-# Auth
-PyJWT==2.9.0
-httpx==0.27.2
+# Auth / HTTP (CrewAI 1.15 requires httpx~=0.28.1, PyJWT>=2.13)
+PyJWT[crypto]>=2.13.0,<3
+httpx~=0.28.1
 
 # Utilities
-python-dotenv==1.0.1
-python-multipart==0.0.12
-requests==2.32.3
+python-dotenv>=1.2.2,<2
+python-multipart>=0.0.12
+requests>=2.33.0,<3
 
-# AI Agents
-crewai
-langchain==0.3.7
-langchain-openai==0.2.0
-langchain-community==0.3.0
-
+# AI Agents — pin explicitly so tools/cli stay in sync via crewai's deps
+crewai==1.15.1
 # Development
-black==24.8.0
-isort==5.13.2
-pytest==8.3.3
-pytest-asyncio==0.23.8
+black>=24.8.0
+isort>=5.13.2
+pytest>=8.3.3
+pytest-asyncio>=0.23.8

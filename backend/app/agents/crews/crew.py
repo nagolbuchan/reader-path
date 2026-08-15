@@ -1,18 +1,6 @@
 from crewai import Agent, Crew, Process, Task
 from crewai.project import CrewBase, agent, crew, task
-from crewai_tools import SerperDevTool
-from langchain_openai import ChatOpenAI
 from app.agents.crews.tools import search_books_by_topic
-# from app.core.config import settings
-# import os
-
-from .tools import ask_human
-
-# llm = ChatOpenAI(
-#     model="gpt-4o-mini",          # or gpt-4o
-#     temperature=0.0,
-#     openai_api_key=settings.OPENAI_API_KEY   # ← Pass it here
-# )
 
 @CrewBase
 class ReaderPathCrew:
@@ -27,7 +15,6 @@ class ReaderPathCrew:
             config=self.agents_config['librarian_assistant'],
             verbose=True,
             llm="gpt-4o-mini",
-            # tools=[ask_human]
         )
 
     @agent
