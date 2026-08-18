@@ -14,7 +14,7 @@ async def init_driver():
         auth=(settings.NEO4J_USERNAME, settings.NEO4J_PASSWORD)
     )
     await driver.verify_connectivity()
-    print("✅ Neo4j driver connected successfully")
+    print("Neo4j driver connected successfully")
 
 
 async def get_driver() -> AsyncDriver:
