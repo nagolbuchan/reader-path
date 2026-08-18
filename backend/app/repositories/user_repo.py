@@ -12,8 +12,9 @@ class UserRepository(BaseRepository):
         image: Optional[str] = None,
         provider: str = "google",
     ) -> Optional[Dict[str, Any]]:
+        # Neo4j property is userId; API/JWT layer uses user_id
         query = """
-        MERGE (u:User {user_id: $user_id})
+        MERGE (u:User {userId: $user_id})
         ON CREATE SET
             u.email = $email,
             u.name = $name,
@@ -26,7 +27,13 @@ class UserRepository(BaseRepository):
             u.image = coalesce($image, u.image),
             u.provider = $provider,
             u.updated_at = datetime()
-        RETURN u { .user_id, .email, .name, .image, .provider } AS user
+        RETURN {
+            user_id: u.userId,
+            email: u.email,
+            name: u.name,
+            image: u.image,
+            provider: u.provider
+        } AS user
         """
         result = await self.execute_query(
             query,
@@ -42,8 +49,14 @@ class UserRepository(BaseRepository):
 
     async def get_user(self, user_id: str) -> Optional[Dict[str, Any]]:
         query = """
-        MATCH (u:User {user_id: $user_id})
-        RETURN u { .user_id, .email, .name, .image, .provider } AS user
+        MATCH (u:User {userId: $user_id})
+        RETURN {
+            user_id: u.userId,
+            email: u.email,
+            name: u.name,
+            image: u.image,
+            provider: u.provider
+        } AS user
         """
         result = await self.execute_query(query, {"user_id": user_id})
         return result[0]["user"] if result else None

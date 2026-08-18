@@ -61,7 +61,7 @@ class CourseRepository(BaseRepository):
             )
 
         query = """
-        MATCH (u:User {user_id: $user_id})
+        MATCH (u:User {userId: $user_id})
         MERGE (t:Topic {slug: $topic_slug})
         ON CREATE SET t.name = $topic_name
         ON MATCH SET t.name = coalesce(t.name, $topic_name)
@@ -137,7 +137,7 @@ class CourseRepository(BaseRepository):
 
     async def get_user_courses(self, user_id: str) -> List[Dict]:
         query = """
-        MATCH (u:User {user_id: $user_id})-[:CREATED]->(c:Course)
+        MATCH (u:User {userId: $user_id})-[:CREATED]->(c:Course)
         RETURN c
         ORDER BY c.created_at DESC
         """
@@ -161,7 +161,7 @@ class CourseRepository(BaseRepository):
         self, course_id: str, user_id: str
     ) -> Optional[Dict]:
         query = """
-        MATCH (u:User {user_id: $user_id})-[:CREATED]->(c:Course {course_id: $course_id})
+        MATCH (u:User {userId: $user_id})-[:CREATED]->(c:Course {course_id: $course_id})
         RETURN c
         """
         result = await self.execute_query(

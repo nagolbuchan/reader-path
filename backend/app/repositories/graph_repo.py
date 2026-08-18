@@ -11,7 +11,7 @@ class GraphRepository(BaseRepository):
         Plus Topic and Author nodes when present.
         """
         query = """
-        MATCH (u:User {user_id: $user_id})
+        MATCH (u:User {userId: $user_id})
         OPTIONAL MATCH (u)-[:CREATED]->(c:Course)
         OPTIONAL MATCH (c)-[:HAS_MODULE]->(m:Module)
         OPTIONAL MATCH (m)-[:ASSIGNS_READING]->(b:Book)
@@ -47,7 +47,8 @@ class GraphRepository(BaseRepository):
                 }
 
         user_props = dict(user)
-        user_node_id = f"user_{user_props.get('user_id')}"
+        uid = user_props.get("userId") or user_props.get("user_id")
+        user_node_id = f"user_{uid}"
         add_node(
             user_node_id,
             "User",
@@ -57,7 +58,7 @@ class GraphRepository(BaseRepository):
 
         # Re-query relationships explicitly for clean edge list
         rel_query = """
-        MATCH (u:User {user_id: $user_id})
+        MATCH (u:User {userId: $user_id})
         OPTIONAL MATCH (u)-[:CREATED]->(c:Course)
         OPTIONAL MATCH (c)-[:HAS_MODULE]->(m:Module)
         OPTIONAL MATCH (m)-[:ASSIGNS_READING]->(b:Book)

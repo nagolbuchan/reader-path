@@ -22,7 +22,7 @@ class BookRepository(BaseRepository):
         query = """
         MATCH (b:Book)-[:RELATED_TO]->(t:Topic {name: $topic})
         WHERE NOT EXISTS {
-            MATCH (u:User {user_id: $user_id})-[:READ]->(b)
+            MATCH (u:User {userId: $user_id})-[:READ]->(b)
         }
         RETURN b
         """
@@ -33,7 +33,7 @@ class BookRepository(BaseRepository):
         query = """
         MATCH (b:Book)-[:IN_GENRE]->(g:Genre {name: $genre})
         WHERE NOT EXISTS {
-            MATCH (u:User {user_id: $user_id})-[:READ]->(b)
+            MATCH (u:User {userId: $user_id})-[:READ]->(b)
         }
         RETURN b
         """

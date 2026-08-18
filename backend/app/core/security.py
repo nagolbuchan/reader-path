@@ -8,9 +8,12 @@ from app.core.config import settings
 
 
 def create_session_token(user: Dict[str, Any]) -> str:
+    user_id = user.get("user_id") or user.get("userId")
+    if not user_id:
+        raise ValueError("Cannot create session token without user_id")
     now = datetime.now(timezone.utc)
     payload = {
-        "sub": user["user_id"],
+        "sub": user_id,
         "email": user.get("email"),
         "name": user.get("name"),
         "image": user.get("image"),
