@@ -2,7 +2,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, Optional
 
 import jwt
-from fastapi import Cookie, HTTPException, status
+from fastapi import HTTPException, Request, status
 
 from app.core.config import settings
 
@@ -13,12 +13,12 @@ def create_session_token(user: Dict[str, Any]) -> str:
         raise ValueError("Cannot create session token without user_id")
     now = datetime.now(timezone.utc)
     payload = {
-        "sub": user_id,
+        "sub": str(user_id),
         "email": user.get("email"),
         "name": user.get("name"),
         "image": user.get("image"),
-        "iat": now,
-        "exp": now + timedelta(seconds=settings.SESSION_MAX_AGE_SECONDS),
+        "iat": int(now.timestamp()),
+        "exp": int((now + timedelta(seconds=settings.SESSION_MAX_AGE_SECONDS)).timestamp()),
     }
     return jwt.encode(payload, settings.AUTH_SECRET, algorithm="HS256")
 
@@ -29,7 +29,7 @@ def decode_session_token(token: str) -> Dict[str, Any]:
     except jwt.PyJWTError as exc:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or expired session",
+            detail=f"Invalid or expired session: {exc}",
         ) from exc
 
 
@@ -48,29 +48,27 @@ def _user_from_payload(payload: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
-async def get_current_user(
-    readerpath_session: Optional[str] = Cookie(
-        default=None, alias=settings.SESSION_COOKIE_NAME
-    ),
-) -> Dict[str, Any]:
-    if not readerpath_session:
+def _session_cookie_from_request(request: Request) -> Optional[str]:
+    return request.cookies.get(settings.SESSION_COOKIE_NAME)
+
+
+async def get_current_user(request: Request) -> Dict[str, Any]:
+    token = _session_cookie_from_request(request)
+    if not token:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Not authenticated",
         )
-    payload = decode_session_token(readerpath_session)
+    payload = decode_session_token(token)
     return _user_from_payload(payload)
 
 
-async def get_optional_user(
-    readerpath_session: Optional[str] = Cookie(
-        default=None, alias=settings.SESSION_COOKIE_NAME
-    ),
-) -> Optional[Dict[str, Any]]:
-    if not readerpath_session:
+async def get_optional_user(request: Request) -> Optional[Dict[str, Any]]:
+    token = _session_cookie_from_request(request)
+    if not token:
         return None
     try:
-        payload = decode_session_token(readerpath_session)
+        payload = decode_session_token(token)
         return _user_from_payload(payload)
     except HTTPException:
         return None
