@@ -96,129 +96,144 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onCourseSaved }) => {
     await saveMutation.mutateAsync(previewData);
   };
 
-  const suggestions = [
-    'Medieval European History',
-    'Machine Learning Fundamentals',
-    'Stoicism and Modern Life',
-  ];
-
-  return (
-    <section className="relative min-h-screen w-full flex items-center justify-center bg-[#09090b] text-white px-6 py-12 overflow-hidden">
-      <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-indigo-600/10 rounded-full blur-[140px] pointer-events-none" />
-      <div className="absolute top-1/2 left-1/3 w-[400px] h-[400px] bg-sky-500/5 rounded-full blur-[120px] pointer-events-none" />
-
-      <div className="absolute top-6 right-6 z-20 flex items-center gap-3">
-        {user ? (
-          <>
-            <span className="text-sm text-zinc-400">{user.name || user.email}</span>
-            <button
-              onClick={logout}
-              className="px-3 py-2 text-xs rounded-xl bg-zinc-900 text-zinc-300 border border-zinc-800 hover:bg-zinc-800"
-            >
-              Sign out
-            </button>
-          </>
-        ) : (
-          <button
-            onClick={login}
-            className="px-4 py-2 text-sm rounded-xl bg-white text-black font-medium hover:bg-zinc-200 transition"
-          >
-            Sign in with Google
-          </button>
-        )}
-      </div>
-
-      <div className="relative z-10 w-full max-w-[1280px] flex flex-col items-center">
-        {!isPreviewing ? (
-          <>
-            <div className="inline-flex items-center gap-2 px-3 py-1 text-xs font-medium bg-zinc-900 border border-zinc-800 rounded-full text-zinc-400 mb-6 tracking-wide">
-              <span className="h-1.5 w-1.5 rounded-full bg-indigo-400" />
-              Now in Beta
-            </div>
-
-            <h1 className="text-4xl sm:text-6xl font-bold tracking-tight mb-6 bg-clip-text text-transparent bg-gradient-to-b from-white to-zinc-400 leading-[1.15]">
-              Turn any topic <br />
-              <span className="bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400">
-                into a real reading journey.
-              </span>
-            </h1>
-
-            <p className="text-zinc-400 text-base sm:text-lg max-w-xl mb-10 leading-relaxed font-normal">
-              Enter a topic. Get a structured course with real books, thoughtful
-              assignments, and no AI summaries.
+  if (isPreviewing && previewData) {
+    return (
+      <section className="rp-hero-bg relative min-h-screen w-full px-4 py-6 sm:px-8 sm:py-10">
+        <div className="mx-auto flex h-[min(90vh,920px)] max-w-6xl flex-col overflow-hidden rounded-sm border border-[color:var(--rp-stone-border)] bg-[color:var(--rp-bg)]/80 shadow-[0_24px_80px_rgba(0,0,0,0.55)] backdrop-blur-sm">
+          {error && (
+            <p className="border-b border-[color:var(--rp-stone-border)] bg-[color:var(--rp-bg-warm)] px-4 py-3 text-sm text-[#d4a09a]">
+              {error}
             </p>
-
-            <div className="w-full relative group max-w-2xl">
-              <div className="absolute -inset-px bg-gradient-to-r from-indigo-500 to-purple-500 rounded-2xl opacity-30 group-focus-within:opacity-70 blur-sm transition duration-300" />
-
-              <div className="relative flex items-end gap-2 p-3 bg-zinc-950/80 border border-zinc-800 rounded-2xl shadow-2xl backdrop-blur-md">
-                <textarea
-                  ref={textareaRef}
-                  rows={1}
-                  value={input}
-                  onChange={handleInputChange}
-                  onKeyDown={handleKeyDown}
-                  placeholder={
-                    isAuthenticated
-                      ? 'Enter a topic you want to master...'
-                      : 'Sign in to generate a course...'
-                  }
-                  className="flex-1 max-h-48 min-h-[24px] py-1.5 resize-none bg-transparent text-zinc-100 placeholder-zinc-500 focus:outline-none text-[15px] leading-relaxed"
-                />
-
-                <button
-                  onClick={handleSend}
-                  disabled={!input.trim() || previewMutation.isPending}
-                  className={`flex items-center justify-center p-2.5 rounded-xl transition-all duration-200 
-                    ${
-                      !input.trim() || previewMutation.isPending
-                        ? 'bg-zinc-900 text-zinc-600 cursor-not-allowed'
-                        : 'bg-white hover:bg-zinc-200 text-black shadow-md shadow-white/10 active:scale-95'
-                    }`}
-                >
-                  {previewMutation.isPending ? '…' : '→'}
-                </button>
-              </div>
-            </div>
-
-            {previewMutation.isPending && (
-              <p className="mt-4 text-sm text-zinc-400">
-                Building your course from real books — this can take a minute…
-              </p>
-            )}
-
-            {error && (
-              <p className="mt-4 text-sm text-rose-400 max-w-xl text-center">{error}</p>
-            )}
-
-            <div className="flex flex-wrap items-center justify-center gap-2 mt-5">
-              <span className="text-xs text-zinc-500 mr-1">Try:</span>
-              {suggestions.map((suggestion, index) => (
-                <button
-                  key={index}
-                  onClick={() => setInput(suggestion)}
-                  className="px-3 py-1 rounded-lg text-xs text-zinc-400 bg-zinc-900/40 hover:bg-zinc-900 border border-zinc-800/80 hover:border-zinc-700 hover:text-zinc-200 transition-all duration-150 active:scale-95"
-                >
-                  {suggestion}
-                </button>
-              ))}
-            </div>
-          </>
-        ) : (
-          <div className="w-full h-[88vh] rounded-3xl overflow-hidden shadow-2xl border border-neutral-700">
-            {error && (
-              <p className="p-3 text-sm text-rose-400 bg-neutral-950 border-b border-neutral-800">
-                {error}
-              </p>
-            )}
+          )}
+          <div className="min-h-0 flex-1 overflow-hidden">
             <CoursePreview
-              previewData={previewData!}
+              previewData={previewData}
               onConfirm={handleConfirm}
               onRegenerate={handleRegenerate}
               isSaving={saveMutation.isPending}
             />
           </div>
+        </div>
+      </section>
+    );
+  }
+
+  return (
+    <section className="rp-hero-bg relative flex min-h-screen w-full flex-col overflow-hidden text-[color:var(--rp-ink)]">
+      <header className="relative z-20 flex items-center justify-end px-6 py-6 sm:px-10">
+        {user ? (
+          <div className="flex items-center gap-4">
+            <span
+              className="max-w-[12rem] truncate text-sm text-[color:var(--rp-muted)]"
+              style={{ fontFamily: 'var(--rp-font-body)' }}
+            >
+              {user.name || user.email}
+            </span>
+            <button
+              type="button"
+              onClick={logout}
+              className="border border-[color:var(--rp-stone-border)] px-3 py-1.5 text-xs tracking-wide text-[color:var(--rp-highlight)] transition hover:border-[color:var(--rp-accent)] hover:text-[color:var(--rp-accent)]"
+            >
+              Sign out
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={login}
+            className="border border-[color:var(--rp-stone-border)] px-4 py-2 text-sm tracking-wide text-[color:var(--rp-highlight)] transition hover:border-[color:var(--rp-accent)] hover:text-[color:var(--rp-accent)]"
+          >
+            Sign in with Google
+          </button>
         )}
+      </header>
+
+      <div className="relative z-10 mx-auto flex w-full max-w-3xl flex-1 flex-col items-center justify-center px-6 pb-24 pt-4 text-center sm:px-8">
+        <h1
+          className="rp-rise text-[clamp(3rem,12vw,6.5rem)] font-extrabold leading-[0.95] tracking-[-0.04em] text-[color:var(--rp-ink)]"
+          style={{ fontFamily: 'var(--rp-font-display)' }}
+        >
+          ReaderPath
+        </h1>
+
+        <p
+          className="rp-rise rp-rise-delay-1 mt-6 text-[clamp(1.25rem,3vw,1.75rem)] font-medium tracking-tight text-[color:var(--rp-highlight)]"
+          style={{ fontFamily: 'var(--rp-font-display)' }}
+        >
+          A course of real books.
+        </p>
+
+        <p
+          className="rp-rise rp-rise-delay-2 mt-4 max-w-md text-base leading-relaxed text-[color:var(--rp-muted)] sm:text-lg"
+          style={{ fontFamily: 'var(--rp-font-body)' }}
+        >
+          Enter a topic. Read primary sources. Think for yourself.
+        </p>
+
+        <div className="rp-rise rp-rise-delay-3 mt-12 w-full max-w-xl">
+          <div
+            className="rp-input flex items-end gap-2 border border-[color:var(--rp-stone-border)] bg-[color:var(--rp-bg)]/55 px-3 py-3 backdrop-blur-md transition"
+          >
+            <textarea
+              ref={textareaRef}
+              rows={1}
+              value={input}
+              onChange={handleInputChange}
+              onKeyDown={handleKeyDown}
+              placeholder={
+                isAuthenticated
+                  ? 'Enter a topic you want to master…'
+                  : 'Sign in to begin a reading journey…'
+              }
+              className="max-h-40 min-h-[28px] flex-1 resize-none bg-transparent py-1.5 text-left text-[15px] leading-relaxed text-[color:var(--rp-ink)] placeholder:text-[color:var(--rp-muted)] focus:outline-none"
+              style={{ fontFamily: 'var(--rp-font-body)' }}
+            />
+            <button
+              type="button"
+              onClick={handleSend}
+              disabled={!input.trim() || previewMutation.isPending}
+              aria-label="Generate course"
+              className="rp-send flex h-10 w-10 shrink-0 items-center justify-center bg-[color:var(--rp-accent)] text-[color:var(--rp-bg)] transition enabled:hover:brightness-110 disabled:cursor-not-allowed disabled:bg-[color:var(--rp-stone)] disabled:text-[color:var(--rp-muted)]"
+            >
+              {previewMutation.isPending ? '…' : '→'}
+            </button>
+          </div>
+
+          {previewMutation.isPending && (
+            <p
+              className="mt-4 text-sm text-[color:var(--rp-muted)]"
+              style={{ fontFamily: 'var(--rp-font-body)' }}
+            >
+              Gathering real books into a course — this can take a minute…
+            </p>
+          )}
+
+          {error && (
+            <p className="mt-4 text-sm text-[#d4a09a]">{error}</p>
+          )}
+        </div>
+
+        <p
+          className="mt-16 max-w-lg text-xs leading-relaxed text-[color:var(--rp-muted)]/70"
+          style={{ fontFamily: 'var(--rp-font-body)' }}
+        >
+          {[
+            'Medieval European History',
+            'Machine Learning Fundamentals',
+            'Stoicism and Modern Life',
+          ].map((topic, i, arr) => (
+            <span key={topic}>
+              <button
+                type="button"
+                onClick={() => setInput(topic)}
+                className="underline decoration-[color:var(--rp-stone-border)] underline-offset-4 transition hover:text-[color:var(--rp-highlight)] hover:decoration-[color:var(--rp-accent)]"
+              >
+                {topic}
+              </button>
+              {i < arr.length - 1 ? ' · ' : ''}
+            </span>
+          ))}
+        </p>
       </div>
     </section>
   );

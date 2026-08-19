@@ -6,6 +6,17 @@ import { useAuth } from './lib/auth';
 import HomeGraph from './components/HomeGraph';
 import { HeroSection } from './components/HeroSection';
 
+function LoadingScreen({ label }: { label: string }) {
+  return (
+    <div
+      className="flex h-screen items-center justify-center bg-[color:var(--rp-bg)] text-[color:var(--rp-muted)]"
+      style={{ fontFamily: 'var(--rp-font-body)' }}
+    >
+      {label}
+    </div>
+  );
+}
+
 function HomePage() {
   const { user, isLoading: authLoading, isAuthenticated, logout } = useAuth();
   const [forceHero, setForceHero] = useState(false);
@@ -25,11 +36,7 @@ function HomePage() {
   });
 
   if (authLoading) {
-    return (
-      <div className="flex h-screen items-center justify-center bg-neutral-950 text-zinc-400">
-        Loading…
-      </div>
-    );
+    return <LoadingScreen label="Loading…" />;
   }
 
   const hasCourses =
@@ -37,15 +44,11 @@ function HomePage() {
     Boolean(graphData?.nodes?.length);
 
   if (isAuthenticated && !forceHero && isPending) {
-    return (
-      <div className="flex h-screen items-center justify-center bg-neutral-950 text-zinc-400">
-        Loading your learning graph…
-      </div>
-    );
+    return <LoadingScreen label="Opening your learning graph…" />;
   }
 
   if (isAuthenticated && !forceHero && error) {
-    // New users with no graph yet may 401/empty — fall through to hero if no courses
+    // Fall through to hero if graph fetch fails / empty
   }
 
   if (isAuthenticated && !forceHero && hasCourses && graphData) {
@@ -61,15 +64,16 @@ function HomePage() {
   }
 
   return (
-    <div className="min-h-screen bg-neutral-950">
+    <div className="min-h-screen bg-[color:var(--rp-bg)]">
       {isAuthenticated && hasCourses && (
         <div className="absolute top-6 left-6 z-30">
           <button
+            type="button"
             onClick={() => {
               setForceHero(false);
               navigate('/');
             }}
-            className="px-3 py-2 text-xs rounded-xl bg-slate-800 text-slate-200 border border-slate-700"
+            className="border border-[color:var(--rp-stone-border)] bg-[color:var(--rp-bg)]/70 px-3 py-2 text-xs tracking-wide text-[color:var(--rp-highlight)] backdrop-blur-sm transition hover:border-[color:var(--rp-accent)] hover:text-[color:var(--rp-accent)]"
           >
             Back to graph
           </button>
@@ -95,16 +99,15 @@ function PublicGraphPage() {
   });
 
   if (isPending) {
-    return (
-      <div className="flex h-screen items-center justify-center bg-neutral-950 text-zinc-400">
-        Loading shared graph…
-      </div>
-    );
+    return <LoadingScreen label="Loading shared graph…" />;
   }
 
   if (error || !data) {
     return (
-      <div className="flex h-screen items-center justify-center bg-neutral-950 text-rose-400">
+      <div
+        className="flex h-screen items-center justify-center bg-[color:var(--rp-bg)] text-[#d4a09a]"
+        style={{ fontFamily: 'var(--rp-font-body)' }}
+      >
         Shared graph not found.
       </div>
     );
