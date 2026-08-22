@@ -1,12 +1,25 @@
 librarian_task:
   description: |
-    Conduct a thorough search for books on {topic}. Compile a list of **no more than 10 books**, 
-    including title, author, brief summary, and a purchase/read link.
+    Conduct a thorough search for books on {topic}. Compile a list of **at least 24 and no more than 40 books**,
+    including title, author, brief summary, a purchase/read link, and whether each work is a **primary** or **secondary** source.
 
-    Prioritize primary sources and authoritative texts. 
-    If fewer than 5 good books are found, slightly broaden the search while staying relevant.
+    Use the Google Books tool multiple times with refined or related sub-queries if needed so the list is large
+    enough to support 4–6 course modules with at least 4 distinct readings each.
+
+    Primary-source priority (non-negotiable):
+    - Prefer primary sources first: texts written in or by people of the period/culture/subject under study
+      (chronicles, letters, treatises, scripture, law codes, poetry, memoirs, speeches, contemporary documents).
+    - For historical eras or regions (e.g. Medieval Europe, Classical Greece, Tokugawa Japan), run dedicated searches
+      for primary sources and translations of period texts (e.g. "medieval primary sources", authors and works from that era).
+    - Include **at least 8 clearly labeled primary sources** when the topic is a time period, civilization, or historical culture.
+    - Secondary scholarship is allowed, but must not crowd out primary texts.
+
     Never include books without a valid link.
-  expected_output: "A structured list of books with title, author, brief summary, and link."
+    Prefer unique titles; avoid near-duplicates.
+    In your list, mark each book as Primary or Secondary.
+  expected_output: >
+    A structured list of at least 24 books with title, author, brief summary, link,
+    and Primary/Secondary label, with strong primary-source coverage for period topics.
   agent: librarian
 
 course_creator_task:
@@ -15,8 +28,25 @@ course_creator_task:
     Break it into 4-6 logical modules. For each module include:
     - Module title
     - Learning objectives
-    - Assigned readings (with links)
-    - Thoughtful written/research assignments
+    - Assigned readings (with links) — **at least 4 real books per module**
+    - Thoughtful written/research assignments that require reading those sources (not AI summaries)
+    - `is_primary_sources_only`: boolean
+
+    Hard requirements for readings:
+    - Every module MUST have **at least 4** objects in `assigned_readings`.
+    - Prefer distinct books across the course; reuse a book in a second module only if pedagogically necessary.
+    - Every reading must include a valid link from the librarian's list (or another verified link).
+    - Prioritize primary sources whenever they fit the module's goals.
+
+    Period / historical topics (critical):
+    - If {topic} is (or clearly centers on) a historical time period, era, civilization, or culture
+      (examples: Medieval Europe, the Roman Republic, Tang China, the American Civil War),
+      you MUST include **at least one module where `is_primary_sources_only` is true**.
+    - In that module, **every** assigned reading must be a primary source from that period
+      (or a faithful translation/edition of a period text)—no modern secondary histories or textbooks in that module.
+    - Title and learning objectives for that module should make clear that students are learning the period
+      through what people then wrote (e.g. "Voices of the Middle Ages" / "Reading the twelfth century in its own words").
+    - Assignments for that module must ask students to interpret those period texts directly.
 
     Return ONLY a valid JSON object (no markdown) with this exact shape:
     {
@@ -27,7 +57,11 @@ course_creator_task:
         {
           "module_title": "string",
           "learning_objectives": ["string"],
+          "is_primary_sources_only": false,
           "assigned_readings": [
+            {"title": "string", "authors": "string", "link": "string"},
+            {"title": "string", "authors": "string", "link": "string"},
+            {"title": "string", "authors": "string", "link": "string"},
             {"title": "string", "authors": "string", "link": "string"}
           ],
           "assignments": [
@@ -36,7 +70,9 @@ course_creator_task:
         }
       ]
     }
-  expected_output: "A valid JSON object containing the full course structure with modules, readings, and assignments."
+  expected_output: >
+    A valid JSON course with modules, at least 4 readings per module, primary sources prioritized,
+    and for period topics at least one primary-sources-only module.
   agent: course_creator
   context:
     - librarian_task

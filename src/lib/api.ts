@@ -34,6 +34,7 @@ export interface ModuleItem {
   learning_objectives: string[];
   assigned_readings: BookReading[];
   assignments: AssignmentItem[];
+  is_primary_sources_only?: boolean;
 }
 
 export interface CoursePreviewData {

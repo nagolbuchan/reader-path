@@ -25,7 +25,7 @@ def search_books_by_topic(topic: str) -> str:
 
     params = {
         "q": topic,
-        "maxResults": 12,
+        "maxResults": 40,
         "printType": "books",
         "orderBy": "relevance",
         "key": api_key,

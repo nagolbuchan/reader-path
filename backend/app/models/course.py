@@ -17,8 +17,9 @@ class AssignmentItem(BaseModel):
 class ModuleItem(BaseModel):
     module_title: str
     learning_objectives: List[str] = Field(default_factory=list)
-    assigned_readings: List[BookReading] = Field(default_factory=list)
+    assigned_readings: List[BookReading] = Field(min_length=4)
     assignments: List[AssignmentItem] = Field(default_factory=list)
+    is_primary_sources_only: bool = False
 
 
 class CoursePreview(BaseModel):

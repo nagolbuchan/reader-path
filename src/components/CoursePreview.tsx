@@ -85,6 +85,7 @@ export const CoursePreview: React.FC<CoursePreviewProps> = ({
                   style={{ fontFamily: 'var(--rp-font-display)' }}
                 >
                   Module {idx + 1}
+                  {module.is_primary_sources_only ? ' · Primary sources' : ''}
                 </span>
                 <span
                   className="mt-1 block text-sm font-medium leading-snug"
@@ -128,6 +129,14 @@ export const CoursePreview: React.FC<CoursePreviewProps> = ({
           >
             {currentModule.module_title}
           </h2>
+          {currentModule.is_primary_sources_only && (
+            <p
+              className="mt-3 text-sm text-[color:var(--rp-accent)]"
+              style={{ fontFamily: 'var(--rp-font-body)' }}
+            >
+              Primary sources only — learn this period through what people then wrote.
+            </p>
+          )}
 
           <section className="mt-10">
             <h3
