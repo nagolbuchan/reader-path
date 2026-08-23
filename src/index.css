@@ -67,18 +67,17 @@ body {
 .rp-hero-bg {
   background-color: var(--rp-bg);
   background-image:
-    linear-gradient(
-      180deg,
-      rgba(12, 15, 18, 0.55) 0%,
-      rgba(12, 15, 18, 0.72) 40%,
-      rgba(12, 15, 18, 0.92) 100%
+    radial-gradient(
+      ellipse 70% 50% at 50% 18%,
+      rgba(22, 18, 16, 0.95) 0%,
+      transparent 65%
     ),
     radial-gradient(
       ellipse 80% 55% at 50% 0%,
-      rgba(232, 213, 181, 0.12) 0%,
-      transparent 60%
+      rgba(232, 213, 181, 0.06) 0%,
+      transparent 55%
     ),
-    url("https://images.unsplash.com/photo-1521587760476-6c12a4b040da?auto=format&fit=crop&w=2400&q=80");
+    linear-gradient(180deg, #0c0f12 0%, #161210 55%, #0c0f12 100%);
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;

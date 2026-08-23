@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect, type ChangeEvent, type KeyboardEven
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { crewApi, courseApi, type CoursePreviewData } from '../lib/api';
 import { CoursePreview } from './CoursePreview';
+import { ConstellationBackdrop } from './ConstellationBackdrop';
 import { useAuth } from '../lib/auth';
 
 interface HeroSectionProps {
@@ -98,8 +99,9 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onCourseSaved }) => {
 
   if (isPreviewing && previewData) {
     return (
-      <section className="rp-hero-bg relative min-h-screen w-full px-4 py-6 sm:px-8 sm:py-10">
-        <div className="mx-auto flex h-[min(90vh,920px)] max-w-6xl flex-col overflow-hidden rounded-sm border border-[color:var(--rp-stone-border)] bg-[color:var(--rp-bg)]/80 shadow-[0_24px_80px_rgba(0,0,0,0.55)] backdrop-blur-sm">
+      <section className="rp-hero-bg relative min-h-screen w-full overflow-hidden px-4 py-6 sm:px-8 sm:py-10">
+        <ConstellationBackdrop />
+        <div className="relative z-10 mx-auto flex h-[min(90vh,920px)] max-w-6xl flex-col overflow-hidden rounded-sm border border-[color:var(--rp-stone-border)] bg-[color:var(--rp-bg)]/80 shadow-[0_24px_80px_rgba(0,0,0,0.55)] backdrop-blur-sm">
           {error && (
             <p className="border-b border-[color:var(--rp-stone-border)] bg-[color:var(--rp-bg-warm)] px-4 py-3 text-sm text-[#d4a09a]">
               {error}
@@ -120,6 +122,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onCourseSaved }) => {
 
   return (
     <section className="rp-hero-bg relative flex min-h-screen w-full flex-col overflow-hidden text-[color:var(--rp-ink)]">
+      <ConstellationBackdrop />
       <header className="relative z-20 flex items-center justify-end px-6 py-6 sm:px-10">
         {user ? (
           <div className="flex items-center gap-4">
