@@ -14,7 +14,7 @@ librarian_task:
     - Never invent titles, authors, or links.
     - Every book MUST include its Google Books `ID`, title, authors, brief summary, and link.
     - Never include books without a valid ID and link.
-    - Prefer unique titles; avoid near-duplicates.
+    - Prefer unique titles; never list the same work twice (same ID or same title).
     - Mark each book as Primary or Secondary when relevant.
 
     Category-specific search focus:
@@ -54,7 +54,8 @@ course_creator_task:
     - Every reading MUST come from the librarian's verified list and MUST include `google_books_id`.
     - Never invent books or links. If a book is not on the list, do not use it.
     - Every module MUST have **at least 4** objects in `assigned_readings`.
-    - Prefer distinct books across the course.
+    - **No duplicate books anywhere in the course** — each `google_books_id` and each title
+      may appear in at most one module, exactly once. Do not reuse a book across modules.
 
     Category rules (non-negotiable):
     - history: ≥1 module with `is_primary_sources_only: true` (period primary sources / translations only).

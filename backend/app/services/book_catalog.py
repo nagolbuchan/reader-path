@@ -13,6 +13,8 @@ from app.services.google_books import BookRecord
 _lock = threading.Lock()
 _active_catalog: Optional[Dict[str, BookRecord]] = None
 
+MIN_READINGS_PER_MODULE = 4
+
 
 def start_catalog(seed: Optional[Iterable[BookRecord]] = None) -> Dict[str, BookRecord]:
     catalog: Dict[str, BookRecord] = {}
@@ -77,52 +79,136 @@ def _match_record(
     return None
 
 
+def _is_used(book: BookRecord, seen_ids: set[str], seen_titles: set[str]) -> bool:
+    title_key = _normalize(book.title)
+    if book.google_books_id in seen_ids:
+        return True
+    if title_key and title_key in seen_titles:
+        return True
+    return False
+
+
+def _next_unused(
+    catalog: Dict[str, BookRecord], seen_ids: set[str], seen_titles: set[str]
+) -> Optional[BookRecord]:
+    for book in catalog.values():
+        if not _is_used(book, seen_ids, seen_titles):
+            return book
+    return None
+
+
+def _claim(
+    book: BookRecord,
+    seen_ids: set[str],
+    seen_titles: set[str],
+    summary: Optional[str] = None,
+) -> BookReading:
+    seen_ids.add(book.google_books_id)
+    title_key = _normalize(book.title)
+    if title_key:
+        seen_titles.add(title_key)
+    return BookReading(
+        title=book.title,
+        authors=book.authors,
+        link=book.link,
+        summary=summary or book.description,
+        google_books_id=book.google_books_id,
+    )
+
+
 def validate_course_readings(
     course: CoursePreview, catalog: Dict[str, BookRecord]
 ) -> Tuple[CoursePreview, List[str]]:
     """
-    Enrich readings with catalog IDs/links. Fail closed on any unverified title.
+    Enrich readings with catalog IDs/links.
+
+    Duplicates and unverified slots are repaired by pulling unused books from the
+    verified catalog. Fails only if a module cannot reach 4 unique verified readings.
     """
     if not catalog:
         raise ValueError(
             "No verified Google Books catalog available. Cannot accept course readings."
         )
 
-    rejected: List[str] = []
+    repairs: List[str] = []
+    seen_ids: set[str] = set()
+    seen_titles: set[str] = set()
     new_modules: List[ModuleItem] = []
 
     for module in course.modules:
         verified: List[BookReading] = []
+
         for reading in module.assigned_readings:
             match = _match_record(reading, catalog)
+
             if not match:
-                rejected.append(
-                    f"{module.module_title}: unverified “{reading.title}”"
+                replacement = _next_unused(catalog, seen_ids, seen_titles)
+                if not replacement:
+                    repairs.append(
+                        f"{module.module_title}: could not replace unverified "
+                        f"“{reading.title}” (catalog exhausted)"
+                    )
+                    continue
+                repairs.append(
+                    f"{module.module_title}: replaced unverified “{reading.title}” "
+                    f"→ “{replacement.title}”"
+                )
+                verified.append(_claim(replacement, seen_ids, seen_titles))
+                continue
+
+            if _is_used(match, seen_ids, seen_titles):
+                replacement = _next_unused(catalog, seen_ids, seen_titles)
+                if not replacement:
+                    repairs.append(
+                        f"{module.module_title}: could not replace duplicate "
+                        f"“{match.title}” (catalog exhausted)"
+                    )
+                    continue
+                repairs.append(
+                    f"{module.module_title}: replaced duplicate “{match.title}” "
+                    f"→ “{replacement.title}”"
+                )
+                verified.append(
+                    _claim(
+                        replacement,
+                        seen_ids,
+                        seen_titles,
+                        summary=reading.summary,
+                    )
                 )
                 continue
+
             verified.append(
-                BookReading(
-                    title=match.title,
-                    authors=match.authors,
-                    link=match.link,
+                _claim(
+                    match,
+                    seen_ids,
+                    seen_titles,
                     summary=reading.summary or match.description,
-                    google_books_id=match.google_books_id,
                 )
             )
 
-        if len(verified) < 4:
+        while len(verified) < MIN_READINGS_PER_MODULE:
+            filler = _next_unused(catalog, seen_ids, seen_titles)
+            if not filler:
+                break
+            repairs.append(
+                f"{module.module_title}: filled slot with “{filler.title}”"
+            )
+            verified.append(_claim(filler, seen_ids, seen_titles))
+
+        if len(verified) < MIN_READINGS_PER_MODULE:
             raise ValueError(
-                f"Module “{module.module_title}” has fewer than 4 verified readings."
+                f"Module “{module.module_title}” has fewer than "
+                f"{MIN_READINGS_PER_MODULE} unique verified readings after repair "
+                f"(have {len(verified)}; catalog may be too small). "
+                + ("; ".join(repairs[-5:]) if repairs else "")
             )
 
         new_modules.append(
             module.model_copy(update={"assigned_readings": verified})
         )
 
-    if rejected:
-        raise ValueError(
-            "Rejected unverified books (not in Google Books catalog): "
-            + "; ".join(rejected[:8])
-        )
+    if repairs:
+        print("Reading repairs:", "; ".join(repairs[:20]))
 
-    return course.model_copy(update={"modules": new_modules}), rejected
+    return course.model_copy(update={"modules": new_modules}), repairs

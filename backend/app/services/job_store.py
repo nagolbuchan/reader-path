@@ -15,7 +15,7 @@ STEP_DEFS = [
     ("classifying_topic", "Classifying topic"),
     ("searching_books", "Searching Google Books"),
     ("building_modules", "Building course modules"),
-    ("validating_readings", "Validating readings"),
+    ("validating_readings", "Validating & repairing readings"),
 ]
 
 

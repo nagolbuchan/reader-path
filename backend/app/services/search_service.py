@@ -128,7 +128,11 @@ class CourseGenerationService:
 
             progress("validating_readings", "Validating readings")
             live_catalog = get_catalog() or catalog
-            course, _ = validate_course_readings(course, live_catalog)
+            course, repairs = validate_course_readings(course, live_catalog)
+            if repairs:
+                print(
+                    f"Applied {len(repairs)} reading repair(s) for topic={topic!r}"
+                )
             course.topic = course.topic or topic
             course.category = category
             return course
