@@ -18,11 +18,19 @@ librarian_task:
     - Mark each book as Primary or Secondary when relevant.
 
     Category-specific search focus:
-    - If category is history: prioritize primary sources (chronicles, letters, treatises, scripture,
-      law codes, poetry, memoirs, speeches). Include at least 8 labeled primary sources.
-    - If category is sciences: include both (a) foundational / historical works by field founders and
-      (b) modern textbooks, handbooks, and practice-oriented titles.
-    - If category is other: balanced introductory through advanced works; verified books only.
+    - history: prioritize primary sources (chronicles, letters, treatises, law, poetry, memoirs).
+      Include at least 8 labeled primary sources.
+    - sciences: foundational / founder works plus modern textbooks and handbooks (STEM/engineering;
+      not hands-on trades).
+    - trade_craft: practice manuals, handbooks, technique books; also a few craft-history /
+      master-craftsperson works.
+    - philosophy: prioritize primary philosophical texts and major commentaries.
+    - literature: primary literary works (novels, poetry, drama) plus serious criticism/anthologies.
+    - languages: grammars, graded readers, textbooks, and vocabulary/reference works.
+    - professional: casebooks, practice handbooks, standards, and professional textbooks.
+    - religion_theology: canonical/scriptural texts, theology, and reputable commentary
+      (not only popular overviews).
+    - other: balanced introductory through advanced works; verified books only.
   expected_output: >
     A structured list of at least 24 books each with ID, title, author, brief summary, link,
     and Primary/Secondary label when applicable — all from Google Books / VERIFIED_BOOKS only.
@@ -49,14 +57,22 @@ course_creator_task:
     - Prefer distinct books across the course.
 
     Category rules (non-negotiable):
-    - history: Include **at least one** module with `is_primary_sources_only: true` where every
-      reading is a primary source (or faithful translation/edition). Objectives/assignments must
-      interpret those period texts directly.
-    - sciences: The **first** module MUST be a legacy/history-of-the-field module
-      (`is_legacy_module: true`) with readings from founders or early foundational works.
-      Later modules use modern textbooks and practice-oriented books (`is_legacy_module: false`).
-      Primary-sources-only is not required for modern modules.
-    - other: Balanced curriculum; no forced primary-only or legacy module; verified books only.
+    - history: ≥1 module with `is_primary_sources_only: true` (period primary sources / translations only).
+    - sciences: **first** module `is_legacy_module: true` (founders / early foundations); later modules
+      modern textbooks and practice (`is_legacy_module: false`).
+    - trade_craft: **first** module `is_legacy_module: true` (history/legacy of the craft or master
+      voices); later modules modern manuals and technique books for mastery.
+    - philosophy: ≥1 module with `is_primary_sources_only: true` devoted to core philosophical texts
+      (not only secondary surveys).
+    - literature: ≥1 module with `is_primary_sources_only: true` of primary literary works; other
+      modules may mix works and criticism.
+    - languages: no forced primary-only module; sequence from foundations (grammar/phonology) to
+      graded reading and advanced usage; use readers and textbooks heavily.
+    - professional: optional first `is_legacy_module` if foundational theorists matter; emphasize
+      casebooks, standards, and practice texts for mastery.
+    - religion_theology: ≥1 module with `is_primary_sources_only: true` of canonical/scriptural
+      (or foundational doctrinal) texts; later modules theology and commentary.
+    - other: balanced curriculum; no forced primary-only or legacy module; verified books only.
 
     Return ONLY a valid JSON object (no markdown) with this exact shape:
     {{

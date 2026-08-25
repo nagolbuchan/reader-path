@@ -39,7 +39,28 @@ export interface ModuleItem {
   is_legacy_module?: boolean;
 }
 
-export type TopicCategory = 'history' | 'sciences' | 'other';
+export type TopicCategory =
+  | 'history'
+  | 'sciences'
+  | 'trade_craft'
+  | 'philosophy'
+  | 'literature'
+  | 'languages'
+  | 'professional'
+  | 'religion_theology'
+  | 'other';
+
+export const TOPIC_CATEGORY_LABELS: Record<TopicCategory, string> = {
+  history: 'History',
+  sciences: 'Sciences',
+  trade_craft: 'Trade / Craft',
+  philosophy: 'Philosophy',
+  literature: 'Literature',
+  languages: 'Languages',
+  professional: 'Professional',
+  religion_theology: 'Religion / Theology',
+  other: 'Other',
+};
 
 export interface CoursePreviewData {
   id?: string;

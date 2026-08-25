@@ -1,5 +1,6 @@
 import React from 'react';
 import type { CoursePreviewData } from '../lib/api';
+import { TOPIC_CATEGORY_LABELS } from '../lib/api';
 
 interface CoursePreviewProps {
   previewData: CoursePreviewData;
@@ -52,7 +53,7 @@ export const CoursePreview: React.FC<CoursePreviewProps> = ({
           >
             Course preview
             {previewData.category
-              ? ` · ${previewData.category}`
+              ? ` · ${TOPIC_CATEGORY_LABELS[previewData.category] ?? previewData.category}`
               : ''}
           </p>
           <h1

@@ -1,7 +1,7 @@
-from typing import List, Literal, Optional
+from typing import List, Optional
 from pydantic import BaseModel, Field
 
-TopicCategory = Literal["history", "sciences", "other"]
+from app.services.topic_classifier import TopicCategory
 
 
 class BookReading(BaseModel):
