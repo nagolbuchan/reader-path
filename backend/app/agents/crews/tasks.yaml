@@ -1,78 +1,90 @@
 librarian_task:
-  description: |
-    Conduct a thorough search for books on {topic}. Compile a list of **at least 24 and no more than 40 books**,
-    including title, author, brief summary, a purchase/read link, and whether each work is a **primary** or **secondary** source.
+  description: >
+    Conduct a thorough search for books on {topic} (category: {category}).
+    Compile a list of **at least 24 and no more than 40 books** from the Google Books tool only.
 
-    Use the Google Books tool multiple times with refined or related sub-queries if needed so the list is large
-    enough to support 4–6 course modules with at least 4 distinct readings each.
+    You are given a VERIFIED_BOOKS seed catalog below. Prefer those IDs. Use the Google Books tool
+    with refined sub-queries to expand coverage for 4–6 modules with ≥4 distinct readings each.
 
-    Primary-source priority (non-negotiable):
-    - Prefer primary sources first: texts written in or by people of the period/culture/subject under study
-      (chronicles, letters, treatises, scripture, law codes, poetry, memoirs, speeches, contemporary documents).
-    - For historical eras or regions (e.g. Medieval Europe, Classical Greece, Tokugawa Japan), run dedicated searches
-      for primary sources and translations of period texts (e.g. "medieval primary sources", authors and works from that era).
-    - Include **at least 8 clearly labeled primary sources** when the topic is a time period, civilization, or historical culture.
-    - Secondary scholarship is allowed, but must not crowd out primary texts.
+    VERIFIED_BOOKS:
+    {verified_books}
 
-    Never include books without a valid link.
-    Prefer unique titles; avoid near-duplicates.
-    In your list, mark each book as Primary or Secondary.
+    HARD RULES:
+    - ONLY include books returned by the Google Books tool or listed in VERIFIED_BOOKS.
+    - Never invent titles, authors, or links.
+    - Every book MUST include its Google Books `ID`, title, authors, brief summary, and link.
+    - Never include books without a valid ID and link.
+    - Prefer unique titles; avoid near-duplicates.
+    - Mark each book as Primary or Secondary when relevant.
+
+    Category-specific search focus:
+    - If category is history: prioritize primary sources (chronicles, letters, treatises, scripture,
+      law codes, poetry, memoirs, speeches). Include at least 8 labeled primary sources.
+    - If category is sciences: include both (a) foundational / historical works by field founders and
+      (b) modern textbooks, handbooks, and practice-oriented titles.
+    - If category is other: balanced introductory through advanced works; verified books only.
   expected_output: >
-    A structured list of at least 24 books with title, author, brief summary, link,
-    and Primary/Secondary label, with strong primary-source coverage for period topics.
+    A structured list of at least 24 books each with ID, title, author, brief summary, link,
+    and Primary/Secondary label when applicable — all from Google Books / VERIFIED_BOOKS only.
   agent: librarian
 
 course_creator_task:
-  description: |
-    Using the verified book list, create a comprehensive course on {topic}.
-    Break it into 4-6 logical modules. For each module include:
+  description: >
+    Using ONLY the verified book list (with Google Books IDs) from the librarian, create a
+    comprehensive course on {topic} (category: {category}).
+    Break it into 4-6 logical modules.
+
+    For each module include:
     - Module title
     - Learning objectives
-    - Assigned readings (with links) — **at least 4 real books per module**
+    - Assigned readings (with google_books_id, title, authors, link) — **at least 4 real books**
     - Thoughtful written/research assignments that require reading those sources (not AI summaries)
     - `is_primary_sources_only`: boolean
+    - `is_legacy_module`: boolean
 
-    Hard requirements for readings:
+    HARD RULES for readings:
+    - Every reading MUST come from the librarian's verified list and MUST include `google_books_id`.
+    - Never invent books or links. If a book is not on the list, do not use it.
     - Every module MUST have **at least 4** objects in `assigned_readings`.
-    - Prefer distinct books across the course; reuse a book in a second module only if pedagogically necessary.
-    - Every reading must include a valid link from the librarian's list (or another verified link).
-    - Prioritize primary sources whenever they fit the module's goals.
+    - Prefer distinct books across the course.
 
-    Period / historical topics (critical):
-    - If {topic} is (or clearly centers on) a historical time period, era, civilization, or culture
-      (examples: Medieval Europe, the Roman Republic, Tang China, the American Civil War),
-      you MUST include **at least one module where `is_primary_sources_only` is true**.
-    - In that module, **every** assigned reading must be a primary source from that period
-      (or a faithful translation/edition of a period text)—no modern secondary histories or textbooks in that module.
-    - Title and learning objectives for that module should make clear that students are learning the period
-      through what people then wrote (e.g. "Voices of the Middle Ages" / "Reading the twelfth century in its own words").
-    - Assignments for that module must ask students to interpret those period texts directly.
+    Category rules (non-negotiable):
+    - history: Include **at least one** module with `is_primary_sources_only: true` where every
+      reading is a primary source (or faithful translation/edition). Objectives/assignments must
+      interpret those period texts directly.
+    - sciences: The **first** module MUST be a legacy/history-of-the-field module
+      (`is_legacy_module: true`) with readings from founders or early foundational works.
+      Later modules use modern textbooks and practice-oriented books (`is_legacy_module: false`).
+      Primary-sources-only is not required for modern modules.
+    - other: Balanced curriculum; no forced primary-only or legacy module; verified books only.
 
     Return ONLY a valid JSON object (no markdown) with this exact shape:
-    {
+    {{
       "title": "string",
       "description": "string",
       "topic": "{topic}",
+      "category": "{category}",
       "modules": [
-        {
+        {{
           "module_title": "string",
           "learning_objectives": ["string"],
           "is_primary_sources_only": false,
+          "is_legacy_module": false,
           "assigned_readings": [
-            {"title": "string", "authors": "string", "link": "string"},
-            {"title": "string", "authors": "string", "link": "string"},
-            {"title": "string", "authors": "string", "link": "string"},
-            {"title": "string", "authors": "string", "link": "string"}
+            {{"title": "string", "authors": "string", "link": "string", "google_books_id": "string"}},
+            {{"title": "string", "authors": "string", "link": "string", "google_books_id": "string"}},
+            {{"title": "string", "authors": "string", "link": "string", "google_books_id": "string"}},
+            {{"title": "string", "authors": "string", "link": "string", "google_books_id": "string"}}
           ],
           "assignments": [
-            {"assignment_title": "string", "description": "string"}
+            {{"assignment_title": "string", "description": "string"}}
           ]
-        }
+        }}
       ]
-    }
+    }}
   expected_output: >
-    A valid JSON course with modules, at least 4 readings per module, primary sources prioritized,
-    and for period topics at least one primary-sources-only module.
+    A valid JSON course with category-appropriate modules, at least 4 verified readings per module
+    each including google_books_id, and no invented books.
   agent: course_creator
   context:
     - librarian_task

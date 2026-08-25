@@ -1,5 +1,7 @@
-from typing import List, Optional
+from typing import List, Literal, Optional
 from pydantic import BaseModel, Field
+
+TopicCategory = Literal["history", "sciences", "other"]
 
 
 class BookReading(BaseModel):
@@ -7,6 +9,7 @@ class BookReading(BaseModel):
     authors: str = "Unknown Author"
     link: Optional[str] = None
     summary: Optional[str] = None
+    google_books_id: Optional[str] = None
 
 
 class AssignmentItem(BaseModel):
@@ -20,12 +23,14 @@ class ModuleItem(BaseModel):
     assigned_readings: List[BookReading] = Field(min_length=4)
     assignments: List[AssignmentItem] = Field(default_factory=list)
     is_primary_sources_only: bool = False
+    is_legacy_module: bool = False
 
 
 class CoursePreview(BaseModel):
     title: str
     description: str = ""
     topic: Optional[str] = None
+    category: Optional[TopicCategory] = None
     modules: List[ModuleItem] = Field(default_factory=list)
 
 
@@ -33,6 +38,7 @@ class CourseCreateRequest(BaseModel):
     title: str
     description: str = ""
     topic: str
+    category: Optional[TopicCategory] = None
     modules: List[ModuleItem] = Field(default_factory=list)
 
 

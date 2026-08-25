@@ -22,6 +22,7 @@ export interface BookReading {
   authors: string;
   link?: string;
   summary?: string;
+  google_books_id?: string;
 }
 
 export interface AssignmentItem {
@@ -35,14 +36,36 @@ export interface ModuleItem {
   assigned_readings: BookReading[];
   assignments: AssignmentItem[];
   is_primary_sources_only?: boolean;
+  is_legacy_module?: boolean;
 }
+
+export type TopicCategory = 'history' | 'sciences' | 'other';
 
 export interface CoursePreviewData {
   id?: string;
   title: string;
   description: string;
   topic?: string;
+  category?: TopicCategory;
   modules: ModuleItem[];
+}
+
+export type CrewJobStepStatus = 'pending' | 'active' | 'done' | 'failed';
+
+export interface CrewJobStep {
+  key: string;
+  label: string;
+  status: CrewJobStepStatus;
+}
+
+export interface CrewJobStatus {
+  job_id: string;
+  topic: string;
+  status: 'pending' | 'running' | 'complete' | 'failed';
+  steps: CrewJobStep[];
+  result?: CoursePreviewData | null;
+  error?: string | null;
+  created_at?: string;
 }
 
 export interface GraphPayload {
@@ -113,6 +136,14 @@ export const crewApi = {
       return payload.data as CoursePreviewData;
     }
     return payload as CoursePreviewData;
+  },
+  createJob: async (topic: string): Promise<{ job_id: string; status: string }> => {
+    const response = await api.post('/crew/jobs', { topic });
+    return response.data;
+  },
+  getJob: async (jobId: string): Promise<CrewJobStatus> => {
+    const response = await api.get(`/crew/jobs/${encodeURIComponent(jobId)}`);
+    return response.data as CrewJobStatus;
   },
 };
 

@@ -12,7 +12,7 @@ type Particle = {
 const GOLD = '196, 165, 116';
 const HIGHLIGHT = '232, 213, 181';
 const LINK_DIST = 140;
-const MAX_LINKS_PER_FRAME = 180;
+const MAX_LINKS_PER_FRAME = 250;
 
 function prefersReducedMotion(): boolean {
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -121,7 +121,7 @@ export function ConstellationBackdrop() {
       const cx = width * 0.5;
       const cy = height * 0.48;
 
-      const maxRadius = Math.min(width, height) * 0.52;
+      const maxRadius = Math.min(width, height) * 0.40;
 
       for (const p of particles) {
         const dx = p.x - cx;

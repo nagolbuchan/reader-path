@@ -51,6 +51,9 @@ export const CoursePreview: React.FC<CoursePreviewProps> = ({
             style={{ fontFamily: 'var(--rp-font-display)' }}
           >
             Course preview
+            {previewData.category
+              ? ` · ${previewData.category}`
+              : ''}
           </p>
           <h1
             className="mt-3 text-xl font-semibold leading-snug tracking-tight text-[color:var(--rp-ink)]"
@@ -86,6 +89,7 @@ export const CoursePreview: React.FC<CoursePreviewProps> = ({
                 >
                   Module {idx + 1}
                   {module.is_primary_sources_only ? ' · Primary sources' : ''}
+                  {module.is_legacy_module ? ' · Legacy' : ''}
                 </span>
                 <span
                   className="mt-1 block text-sm font-medium leading-snug"
@@ -135,6 +139,14 @@ export const CoursePreview: React.FC<CoursePreviewProps> = ({
               style={{ fontFamily: 'var(--rp-font-body)' }}
             >
               Primary sources only — learn this period through what people then wrote.
+            </p>
+          )}
+          {currentModule.is_legacy_module && (
+            <p
+              className="mt-3 text-sm text-[color:var(--rp-accent)]"
+              style={{ fontFamily: 'var(--rp-font-body)' }}
+            >
+              Legacy module — founders and early works that shaped the field.
             </p>
           )}
 

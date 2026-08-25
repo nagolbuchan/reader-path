@@ -1,7 +1,8 @@
 # Option 1 (most common now)
 from crewai.tools import tool
-import requests
-import os
+
+from app.services.book_catalog import record_books
+from app.services.google_books import GoogleBooksError, format_catalog_for_agent, search_volumes
 
 
 @tool
@@ -16,54 +17,15 @@ def ask_human(question: str) -> str:
 
 @tool("Google Books Topic Search Tool")
 def search_books_by_topic(topic: str) -> str:
-    """Searches Google Books for real books matching a topic. Returns only real, existing books."""
-    api_key = os.getenv("GOOGLE_BOOKS_API_KEY")
-    if not api_key:
-        return "Error: GOOGLE_BOOKS_API_KEY is not set in environment variables."
-
-    url = "https://www.googleapis.com/books/v1/volumes"
-
-    params = {
-        "q": topic,
-        "maxResults": 40,
-        "printType": "books",
-        "orderBy": "relevance",
-        "key": api_key,
-    }
-
+    """Searches Google Books for real books matching a topic. Returns only real, existing books with IDs."""
     try:
-        response = requests.get(url, params=params, timeout=10)
+        books = search_volumes(topic, max_results=40)
+    except GoogleBooksError as exc:
+        # FATAL prefix — generation must abort if catalog stays empty
+        return f"FATAL: {exc}"
 
-        if response.status_code != 200:
-            return f"API Error: {response.status_code} - {response.text}"
+    if not books:
+        return f"No books found for topic: {topic}. Try a different sub-query."
 
-        data = response.json()
-        items = data.get("items", [])
-
-        if not items:
-            return f"No books found for topic: {topic}"
-
-        books_summary = []
-        for item in items:
-            v_info = item.get("volumeInfo", {})
-            title = v_info.get("title", "N/A")
-            authors = v_info.get("authors", ["Unknown Author"])
-            description = (
-                v_info.get("description", "No description available.")[:280] + "..."
-                if v_info.get("description")
-                else "No description available."
-            )
-            preview_link = v_info.get("previewLink", "No preview available")
-
-            books_summary.append(
-                f"Title: {title}\n"
-                f"Authors: {', '.join(authors)}\n"
-                f"Description: {description}\n"
-                f"Preview: {preview_link}\n"
-                f"---"
-            )
-
-        return "\n\n".join(books_summary)
-
-    except Exception as e:
-        return f"Error searching Google Books: {str(e)}"
+    record_books(books)
+    return format_catalog_for_agent(books)
