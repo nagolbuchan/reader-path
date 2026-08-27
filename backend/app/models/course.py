@@ -10,6 +10,9 @@ class BookReading(BaseModel):
     link: Optional[str] = None
     summary: Optional[str] = None
     google_books_id: Optional[str] = None
+    open_library_id: Optional[str] = None
+    isbn13: Optional[str] = None
+    gutenberg_url: Optional[str] = None
 
 
 class AssignmentItem(BaseModel):

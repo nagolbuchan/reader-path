@@ -13,7 +13,7 @@ StepStatus = Literal["pending", "active", "done", "failed"]
 
 STEP_DEFS = [
     ("classifying_topic", "Classifying topic"),
-    ("searching_books", "Searching Google Books"),
+    ("searching_books", "Searching verified catalogs"),
     ("building_modules", "Building course modules"),
     ("validating_readings", "Validating & repairing readings"),
 ]

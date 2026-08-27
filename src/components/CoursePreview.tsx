@@ -201,10 +201,21 @@ export const CoursePreview: React.FC<CoursePreviewProps> = ({
                       href={book.link}
                       target="_blank"
                       rel="noreferrer"
-                      className="mt-3 inline-block text-sm text-[color:var(--rp-accent)] underline decoration-[color:var(--rp-stone-border)] underline-offset-4 transition hover:text-[color:var(--rp-highlight)] hover:decoration-[color:var(--rp-accent)]"
+                      className="mt-3 mr-4 inline-block text-sm text-[color:var(--rp-accent)] underline decoration-[color:var(--rp-stone-border)] underline-offset-4 transition hover:text-[color:var(--rp-highlight)] hover:decoration-[color:var(--rp-accent)]"
                       style={{ fontFamily: 'var(--rp-font-body)' }}
                     >
-                      View on Google Books →
+                      View catalog listing →
+                    </a>
+                  )}
+                  {book.gutenberg_url && (
+                    <a
+                      href={book.gutenberg_url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="mt-3 inline-block text-sm text-[color:var(--rp-highlight)] underline decoration-[color:var(--rp-stone-border)] underline-offset-4 transition hover:text-[color:var(--rp-accent)] hover:decoration-[color:var(--rp-accent)]"
+                      style={{ fontFamily: 'var(--rp-font-body)' }}
+                    >
+                      Read free (Gutenberg) →
                     </a>
                   )}
                 </article>

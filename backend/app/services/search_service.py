@@ -1,7 +1,7 @@
 import asyncio
 import json
 import re
-from typing import Any, Callable, Optional
+from typing import Any, Callable, List, Optional
 
 from app.agents.crews.crew import ReaderPathCrew
 from app.models.course import CoursePreview
@@ -11,11 +11,16 @@ from app.services.book_catalog import (
     start_catalog,
     validate_course_readings,
 )
-from app.services.google_books import (
-    GoogleBooksError,
-    format_catalog_for_agent,
-    search_volumes,
+from app.services.book_sources import google_books as gb
+from app.services.book_sources import open_library as ol
+from app.services.book_sources.gutenberg import enrich_course_with_gutenberg
+from app.services.book_sources.merge import format_catalog_for_agent, merge_records
+from app.services.book_sources.resolve import resolve_candidates
+from app.services.book_sources.tmu_sheets import (
+    fetch_tmu_candidates,
+    filter_candidates_for_topic,
 )
+from app.services.book_sources.types import BookRecord
 from app.services.topic_classifier import catalog_queries_for, classify_topic
 
 ProgressCallback = Callable[[str, str], None]
@@ -59,34 +64,65 @@ def parse_crew_course_result(result: Any) -> CoursePreview:
     return CoursePreview.model_validate(data)
 
 
-def _collect_books(topic: str, category: str):
-    """Pre-fetch verified books; fail closed if the API is down or too thin."""
-    collected = []
-    seen = set()
-    last_error: Optional[GoogleBooksError] = None
+def _collect_books(topic: str, category: str) -> List[BookRecord]:
+    """
+    Seed verified catalog from Google Books + Open Library, then resolve
+    TMU sheet candidates into the same catalog.
+    """
+    collected: List[BookRecord] = []
+    errors: List[str] = []
+    sources_used: List[str] = []
 
     for query in catalog_queries_for(topic, category):  # type: ignore[arg-type]
         try:
-            books = search_volumes(query, max_results=40)
-        except GoogleBooksError as exc:
-            last_error = exc
-            continue
-        for book in books:
-            if book.google_books_id in seen:
-                continue
-            seen.add(book.google_books_id)
-            collected.append(book)
+            books = gb.search_volumes(query, max_results=40)
+            if books:
+                sources_used.append("google_books")
+                collected.extend(books)
+        except gb.GoogleBooksError as exc:
+            errors.append(f"Google Books: {exc}")
 
-    if not collected and last_error:
-        raise ValueError(str(last_error)) from last_error
+        try:
+            books = ol.search_open_library(query, max_results=40)
+            if books:
+                sources_used.append("open_library")
+                collected.extend(books)
+        except ol.OpenLibraryError as exc:
+            errors.append(f"Open Library: {exc}")
 
-    if len(collected) < 12:
+    # TMU curriculum candidates → resolve via GB/OL
+    try:
+        candidates = fetch_tmu_candidates()
+        filtered = filter_candidates_for_topic(candidates, topic, limit=30)
+        resolved = resolve_candidates(filtered)
+        if resolved:
+            sources_used.append("tmu_sheets")
+            collected.extend(resolved)
+            print(f"Resolved {len(resolved)} TMU candidate books for topic={topic!r}")
+    except Exception as exc:
+        print(f"TMU candidate pass skipped: {exc}")
+
+    merged = list(merge_records(collected).values())
+    print(
+        "Catalog sources:",
+        sorted(set(sources_used)),
+        f"unique books={len(merged)}",
+    )
+
+    if not merged:
+        detail = "; ".join(errors[:3]) if errors else "no results"
         raise ValueError(
-            "Could not find enough verified books on Google Books for this topic "
-            f"(found {len(collected)}). Try a broader topic, or check API quota."
+            "Could not build a verified book catalog from Google Books / Open Library. "
+            f"({detail})"
         )
 
-    return collected
+    if len(merged) < 12:
+        raise ValueError(
+            "Could not find enough verified books for this topic "
+            f"(found {len(merged)}). Try a broader topic, or check API quota."
+        )
+
+    return merged
 
 
 class CourseGenerationService:
@@ -109,7 +145,7 @@ class CourseGenerationService:
             category = await asyncio.to_thread(classify_topic, topic)
             print("classified category:", category)
 
-            progress("searching_books", "Searching Google Books")
+            progress("searching_books", "Searching verified catalogs")
             collected = await asyncio.to_thread(_collect_books, topic, category)
             catalog = start_catalog(collected)
             verified_books = format_catalog_for_agent(list(catalog.values())[:40])
@@ -126,13 +162,16 @@ class CourseGenerationService:
             )
             course = parse_crew_course_result(result)
 
-            progress("validating_readings", "Validating readings")
+            progress("validating_readings", "Validating & repairing readings")
             live_catalog = get_catalog() or catalog
             course, repairs = validate_course_readings(course, live_catalog)
             if repairs:
                 print(
                     f"Applied {len(repairs)} reading repair(s) for topic={topic!r}"
                 )
+
+            course = await asyncio.to_thread(enrich_course_with_gutenberg, course)
+
             course.topic = course.topic or topic
             course.category = category
             return course

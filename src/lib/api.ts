@@ -23,6 +23,9 @@ export interface BookReading {
   link?: string;
   summary?: string;
   google_books_id?: string;
+  open_library_id?: string;
+  isbn13?: string;
+  gutenberg_url?: string;
 }
 
 export interface AssignmentItem {

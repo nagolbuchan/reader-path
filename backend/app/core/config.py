@@ -34,6 +34,8 @@ class Settings(BaseSettings):
     # External APIs
     SERPER_API_KEY: Optional[str] = None
     GOOGLE_BOOKS_API_KEY: Optional[str] = None
+    # Comma-separated public Google Sheets CSV export URLs (TMU textbook lists)
+    TMU_SHEET_CSV_URLS: str = ""
 
     RATE_LIMIT_PER_MINUTE: int = 10
 

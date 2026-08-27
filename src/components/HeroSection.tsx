@@ -113,7 +113,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onCourseSaved }) => {
       { key: 'classifying_topic', label: 'Classifying topic', status: 'pending' },
       {
         key: 'searching_books',
-        label: 'Searching Google Books',
+        label: 'Searching verified catalogs',
         status: 'pending',
       },
       {

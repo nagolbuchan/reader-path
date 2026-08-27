@@ -8,7 +8,7 @@ import unicodedata
 from typing import Dict, Iterable, List, Optional, Tuple
 
 from app.models.course import BookReading, CoursePreview, ModuleItem
-from app.services.google_books import BookRecord
+from app.services.book_sources.types import BookRecord
 
 _lock = threading.Lock()
 _active_catalog: Optional[Dict[str, BookRecord]] = None
@@ -20,7 +20,7 @@ def start_catalog(seed: Optional[Iterable[BookRecord]] = None) -> Dict[str, Book
     catalog: Dict[str, BookRecord] = {}
     if seed:
         for book in seed:
-            catalog[book.google_books_id] = book
+            catalog[book.catalog_key] = book
     with _lock:
         global _active_catalog
         _active_catalog = catalog
@@ -37,7 +37,7 @@ def record_books(books: Iterable[BookRecord]) -> None:
         if _active_catalog is None:
             return
         for book in books:
-            _active_catalog[book.google_books_id] = book
+            _active_catalog[book.catalog_key] = book
 
 
 def clear_catalog() -> None:
@@ -58,8 +58,21 @@ def _normalize(text: str) -> str:
 def _match_record(
     reading: BookReading, catalog: Dict[str, BookRecord]
 ) -> Optional[BookRecord]:
-    if reading.google_books_id and reading.google_books_id in catalog:
-        return catalog[reading.google_books_id]
+    for book in catalog.values():
+        if (
+            reading.google_books_id
+            and book.google_books_id
+            and reading.google_books_id == book.google_books_id
+        ):
+            return book
+        if (
+            reading.open_library_id
+            and book.open_library_id
+            and reading.open_library_id == book.open_library_id
+        ):
+            return book
+        if reading.isbn13 and book.isbn13 and reading.isbn13 == book.isbn13:
+            return book
 
     title_n = _normalize(reading.title)
     authors_n = _normalize(reading.authors or "")
@@ -81,11 +94,30 @@ def _match_record(
 
 def _is_used(book: BookRecord, seen_ids: set[str], seen_titles: set[str]) -> bool:
     title_key = _normalize(book.title)
-    if book.google_books_id in seen_ids:
+    if book.catalog_key in seen_ids:
+        return True
+    if book.google_books_id and f"gb:{book.google_books_id}" in seen_ids:
+        return True
+    if book.open_library_id and f"ol:{book.open_library_id}" in seen_ids:
+        return True
+    if book.isbn13 and f"isbn:{book.isbn13}" in seen_ids:
         return True
     if title_key and title_key in seen_titles:
         return True
     return False
+
+
+def _mark_used(book: BookRecord, seen_ids: set[str], seen_titles: set[str]) -> None:
+    seen_ids.add(book.catalog_key)
+    if book.google_books_id:
+        seen_ids.add(f"gb:{book.google_books_id}")
+    if book.open_library_id:
+        seen_ids.add(f"ol:{book.open_library_id}")
+    if book.isbn13:
+        seen_ids.add(f"isbn:{book.isbn13}")
+    title_key = _normalize(book.title)
+    if title_key:
+        seen_titles.add(title_key)
 
 
 def _next_unused(
@@ -103,16 +135,15 @@ def _claim(
     seen_titles: set[str],
     summary: Optional[str] = None,
 ) -> BookReading:
-    seen_ids.add(book.google_books_id)
-    title_key = _normalize(book.title)
-    if title_key:
-        seen_titles.add(title_key)
+    _mark_used(book, seen_ids, seen_titles)
     return BookReading(
         title=book.title,
         authors=book.authors,
         link=book.link,
         summary=summary or book.description,
         google_books_id=book.google_books_id,
+        open_library_id=book.open_library_id,
+        isbn13=book.isbn13,
     )
 
 
@@ -127,7 +158,7 @@ def validate_course_readings(
     """
     if not catalog:
         raise ValueError(
-            "No verified Google Books catalog available. Cannot accept course readings."
+            "No verified book catalog available. Cannot accept course readings."
         )
 
     repairs: List[str] = []
