@@ -10,8 +10,10 @@ from app.services.book_catalog import (
     clear_catalog,
     get_catalog,
     start_catalog,
+    unused_catalog_readings,
     validate_course_readings,
 )
+from app.services.book_cache import set_replacement_pool
 from app.services.book_sources import google_books as gb
 from app.services.book_sources import open_library as ol
 from app.services.book_sources.gutenberg import enrich_course_with_gutenberg
@@ -204,6 +206,11 @@ class CourseGenerationService:
 
             course.topic = course.topic or topic
             course.category = category
+
+            pool = unused_catalog_readings(course, live_catalog)
+            course.replacement_pool = pool
+            set_replacement_pool(run_id, pool)
+
             run_log.final_course = course.model_dump()
             run_log.status = "complete"
             return course

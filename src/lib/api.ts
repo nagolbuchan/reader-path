@@ -73,6 +73,8 @@ export interface CoursePreviewData {
   topic?: string;
   category?: TopicCategory;
   modules: ModuleItem[];
+  /** Unused verified books from this generation, for quick reading replacement. */
+  replacement_pool?: BookReading[];
 }
 
 export type CrewJobStepStatus = 'pending' | 'active' | 'done' | 'failed';
@@ -194,6 +196,14 @@ export const crewApi = {
       `/crew/jobs/${encodeURIComponent(jobId)}/log`
     );
     return response.data as CrewRunLog;
+  },
+  getReplacementPool: async (
+    jobId: string
+  ): Promise<{ job_id: string; books: BookReading[]; count: number }> => {
+    const response = await api.get(
+      `/crew/jobs/${encodeURIComponent(jobId)}/replacement-pool`
+    );
+    return response.data;
   },
 };
 

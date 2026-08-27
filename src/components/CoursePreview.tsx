@@ -119,6 +119,16 @@ export const CoursePreview: React.FC<CoursePreviewProps> = ({
           >
             {previewData.description}
           </p>
+          {(previewData.replacement_pool?.length ?? 0) > 0 && (
+            <p
+              className="mt-3 text-xs leading-relaxed text-[color:var(--rp-accent)]"
+              style={{ fontFamily: 'var(--rp-font-body)' }}
+            >
+              {previewData.replacement_pool!.length} spare verified book
+              {previewData.replacement_pool!.length === 1 ? '' : 's'} cached for
+              quick replacement
+            </p>
+          )}
         </div>
 
         <nav className="flex-1 space-y-0.5 overflow-y-auto p-3">

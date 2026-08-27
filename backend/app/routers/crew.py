@@ -4,6 +4,7 @@ from pydantic import BaseModel, Field
 
 from app.core.security import get_current_user
 from app.models.course import CoursePreview
+from app.services.book_cache import get_replacement_pool
 from app.services.crew_run_log import read_run_log
 from app.services.google_books import GoogleBooksError
 from app.services.job_store import job_store
@@ -74,6 +75,26 @@ async def get_crew_job_log(job_id: str, current_user=Depends(get_current_user)):
         raise HTTPException(status_code=404, detail="Run log not found yet")
 
     return JSONResponse(content=log)
+
+
+@router.get("/jobs/{job_id}/replacement-pool")
+async def get_crew_job_replacement_pool(
+    job_id: str, current_user=Depends(get_current_user)
+):
+    """Unused verified books from this run, cached for quick reading replacement."""
+    job = job_store.get(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    if job.user_id != current_user["user_id"]:
+        raise HTTPException(status_code=403, detail="Not allowed")
+
+    pool = get_replacement_pool(job_id)
+    if pool is None and job.result:
+        pool = job.result.get("replacement_pool") or []
+    if pool is None:
+        raise HTTPException(status_code=404, detail="Replacement pool not found yet")
+
+    return {"job_id": job_id, "books": pool, "count": len(pool)}
 
 
 @router.get("/kickoff", response_model=dict)

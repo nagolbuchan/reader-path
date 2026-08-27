@@ -13,7 +13,8 @@ from app.services.book_sources.types import BookRecord
 _lock = threading.Lock()
 _active_catalog: Optional[Dict[str, BookRecord]] = None
 
-MIN_READINGS_PER_MODULE = 4
+MIN_READINGS_PER_MODULE = 6
+TARGET_MAX_READINGS_PER_MODULE = 8
 
 
 def start_catalog(seed: Optional[Iterable[BookRecord]] = None) -> Dict[str, BookRecord]:
@@ -136,6 +137,12 @@ def _claim(
     summary: Optional[str] = None,
 ) -> BookReading:
     _mark_used(book, seen_ids, seen_titles)
+    return book_to_reading(book, summary=summary)
+
+
+def book_to_reading(
+    book: BookRecord, summary: Optional[str] = None
+) -> BookReading:
     return BookReading(
         title=book.title,
         authors=book.authors,
@@ -148,6 +155,37 @@ def _claim(
     )
 
 
+def unused_catalog_readings(
+    course: CoursePreview, catalog: Dict[str, BookRecord]
+) -> List[BookReading]:
+    """Return verified catalog books that are not assigned anywhere in the course."""
+    seen_ids: set[str] = set()
+    seen_titles: set[str] = set()
+
+    for module in course.modules:
+        for reading in module.assigned_readings:
+            match = _match_record(reading, catalog)
+            if match:
+                _mark_used(match, seen_ids, seen_titles)
+                continue
+            # Still reserve whatever IDs/title the course claims, even if unmatched.
+            if reading.google_books_id:
+                seen_ids.add(f"gb:{reading.google_books_id}")
+            if reading.open_library_id:
+                seen_ids.add(f"ol:{reading.open_library_id}")
+            if reading.isbn13:
+                seen_ids.add(f"isbn:{reading.isbn13}")
+            title_key = _normalize(reading.title)
+            if title_key:
+                seen_titles.add(title_key)
+
+    return [
+        book_to_reading(book)
+        for book in catalog.values()
+        if not _is_used(book, seen_ids, seen_titles)
+    ]
+
+
 def validate_course_readings(
     course: CoursePreview, catalog: Dict[str, BookRecord]
 ) -> Tuple[CoursePreview, List[str]]:
@@ -155,7 +193,8 @@ def validate_course_readings(
     Enrich readings with catalog IDs/links.
 
     Duplicates and unverified slots are repaired by pulling unused books from the
-    verified catalog. Fails only if a module cannot reach 4 unique verified readings.
+    verified catalog. Fails only if a module cannot reach MIN unique verified readings.
+    Leftover catalog titles are then distributed round-robin up to the per-module max.
     """
     if not catalog:
         raise ValueError(
@@ -240,7 +279,34 @@ def validate_course_readings(
             module.model_copy(update={"assigned_readings": verified})
         )
 
+    # Distribute leftover catalog books round-robin up to per-module max.
+    readings_by_module: List[List[BookReading]] = [
+        list(m.assigned_readings) for m in new_modules
+    ]
+    made_progress = True
+    while made_progress:
+        made_progress = False
+        for idx, readings in enumerate(readings_by_module):
+            if len(readings) >= TARGET_MAX_READINGS_PER_MODULE:
+                continue
+            leftover = _next_unused(catalog, seen_ids, seen_titles)
+            if not leftover:
+                made_progress = False
+                break
+            repairs.append(
+                f"{new_modules[idx].module_title}: filled leftover “{leftover.title}”"
+            )
+            readings.append(_claim(leftover, seen_ids, seen_titles))
+            made_progress = True
+
+    new_modules = [
+        m.model_copy(update={"assigned_readings": readings})
+        for m, readings in zip(new_modules, readings_by_module)
+    ]
+
     if repairs:
-        print("Reading repairs:", "; ".join(repairs[:20]))
+        # Avoid Windows console encode failures on arrows / curly quotes.
+        safe = "; ".join(repairs[:20]).encode("ascii", "replace").decode("ascii")
+        print("Reading repairs:", safe)
 
     return course.model_copy(update={"modules": new_modules}), repairs

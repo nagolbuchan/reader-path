@@ -36,6 +36,8 @@ class CoursePreview(BaseModel):
     topic: Optional[str] = None
     category: Optional[TopicCategory] = None
     modules: List[ModuleItem] = Field(default_factory=list)
+    # Verified catalog books not assigned to the course — for quick replace UI.
+    replacement_pool: List[BookReading] = Field(default_factory=list)
 
 
 class CourseCreateRequest(BaseModel):
