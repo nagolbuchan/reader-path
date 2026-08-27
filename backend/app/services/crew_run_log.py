@@ -50,6 +50,16 @@ class _TeeStream:
         for stream in self._streams:
             try:
                 stream.write(data)
+            except UnicodeEncodeError:
+                # Windows consoles may still be charmap; drop unsupported glyphs.
+                try:
+                    encoding = getattr(stream, "encoding", None) or "utf-8"
+                    safe = data.encode(encoding, errors="replace").decode(
+                        encoding, errors="replace"
+                    )
+                    stream.write(safe)
+                except Exception:
+                    pass
             except Exception:
                 pass
         return len(data)
@@ -63,6 +73,10 @@ class _TeeStream:
 
     def isatty(self) -> bool:
         return False
+
+    @property
+    def encoding(self) -> str:
+        return "utf-8"
 
 
 @contextmanager

@@ -6,7 +6,11 @@ from dotenv import load_dotenv
 
 from app.core.config import settings
 from app.core.database import init_driver, close_driver
+from app.core.stdio_utf8 import configure_utf8_stdio
 from app.routers import auth, courses, crew, graph
+
+# Before CrewAI / uvicorn log handlers touch the console.
+configure_utf8_stdio()
 
 load_dotenv()
 
