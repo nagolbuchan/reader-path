@@ -195,6 +195,7 @@ export const CoursePreview: React.FC<CoursePreviewProps> = ({
                     style={{ fontFamily: 'var(--rp-font-body)' }}
                   >
                     {book.authors}
+                    {book.published_year ? ` · ${book.published_year}` : ''}
                   </p>
                   {book.link && (
                     <a

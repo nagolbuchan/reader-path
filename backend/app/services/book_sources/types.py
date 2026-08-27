@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from typing import Optional
 
@@ -17,6 +18,7 @@ class BookRecord:
     isbn13: Optional[str] = None
     google_books_id: Optional[str] = None
     open_library_id: Optional[str] = None
+    published_year: Optional[int] = None
 
     @property
     def catalog_key(self) -> str:
@@ -34,3 +36,18 @@ def normalize_isbn(raw: str) -> Optional[str]:
     if len(digits) == 10 or len(digits) == 13:
         return digits.upper()
     return None
+
+
+def parse_year(raw: object) -> Optional[int]:
+    if raw is None:
+        return None
+    if isinstance(raw, int):
+        return raw if 100 <= raw <= 2100 else None
+    text = str(raw).strip()
+    if not text:
+        return None
+    match = re.search(r"(?<!\d)([1-9]\d{2,3})(?!\d)", text)
+    if not match:
+        return None
+    year = int(match.group(1))
+    return year if 100 <= year <= 2100 else None

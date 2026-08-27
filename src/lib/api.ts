@@ -26,6 +26,7 @@ export interface BookReading {
   open_library_id?: string;
   isbn13?: string;
   gutenberg_url?: string;
+  published_year?: number;
 }
 
 export interface AssignmentItem {

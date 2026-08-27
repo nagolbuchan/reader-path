@@ -21,11 +21,14 @@ librarian_task:
     - Mark each book as Primary or Secondary when relevant.
 
     Category-specific search focus:
-    - history: prioritize primary sources (chronicles, letters, treatises, law, poetry, memoirs).
-      Include at least 8 labeled primary sources.
-    - sciences: foundational / founder works plus modern textbooks and handbooks (STEM/engineering;
-      not hands-on trades).
-    - trade_craft: practice manuals, handbooks, technique books; also a few craft-history /
+    - history: prioritize the earliest writings on the topic (chronicles, letters, treatises,
+      law, poetry, memoirs from the period). Include at least 8 labeled primary sources.
+      Prefer period texts and early translations over modern surveys when searching.
+      When listing books, note approximate Year when known and lean earliest-first.
+    - sciences: prioritize first-principles foundations and rigorous practice texts for STEM/
+      engineering (not hands-on trades). Prefer works that teach underlying principles, derivation,
+      and problem-solving over pop-science surveys. Include founder/classical works plus modern
+      textbooks, problem books, and handbooks that build practitioners.    - trade_craft: practice manuals, handbooks, technique books; also a few craft-history /
       master-craftsperson works.
     - philosophy: prioritize primary philosophical texts and major commentaries.
     - literature: primary literary works (novels, poetry, drama) plus serious criticism/anthologies.
@@ -62,9 +65,24 @@ course_creator_task:
     - **No duplicate books anywhere in the course** — each ID, ISBN, and title may appear in
       at most one module, exactly once. Do not reuse a book across modules.
     Category rules (non-negotiable):
-    - history: ≥1 module with `is_primary_sources_only: true` (period primary sources / translations only).
-    - sciences: **first** module `is_legacy_module: true` (founders / early foundations); later modules
-      modern textbooks and practice (`is_legacy_module: false`).
+    - history:
+        * ≥1 module with `is_primary_sources_only: true` (period primary sources / translations only).
+        * Structure the whole course **chronologically**: modules progress from earliest period
+          writings to later sources and modern scholarship.
+        * Within each module, order `assigned_readings` earliest→latest by composition/publication
+          (use Year from the verified list when provided).
+        * Prefer the earliest available writings on the topic first (e.g. for the Reconquista,
+          start with contemporary Iberian/Andalusi/Christian chronicles before modern historians).
+        * Include `published_year` on readings when the catalog provides Year.
+    - sciences:
+        * **first** module `is_legacy_module: true` (founders / early foundational works that
+          established the field's first principles).
+        * Later modules (`is_legacy_module: false`) build toward mastery as a **first-principles
+          thinker and practitioner**: prioritize rigorous textbooks, theory-from-fundamentals,
+          worked problems, labs/design practice, and handbooks—not superficial overviews.
+        * Prefer books that explain *why* (mechanisms, derivations, models) and books that train
+          *doing* (exercises, projects, applied design) over popularizations.
+        * Sequence modules from core principles → methods/tools → applied practice / systems.
     - trade_craft: **first** module `is_legacy_module: true` (history/legacy of the craft or master
       voices); later modules modern manuals and technique books for mastery.
     - philosophy: ≥1 module with `is_primary_sources_only: true` devoted to core philosophical texts
@@ -92,10 +110,10 @@ course_creator_task:
           "is_primary_sources_only": false,
           "is_legacy_module": false,
           "assigned_readings": [
-            {{"title": "string", "authors": "string", "link": "string", "google_books_id": "string", "open_library_id": "string", "isbn13": "string"}},
-            {{"title": "string", "authors": "string", "link": "string", "google_books_id": "string", "open_library_id": "string", "isbn13": "string"}},
-            {{"title": "string", "authors": "string", "link": "string", "google_books_id": "string", "open_library_id": "string", "isbn13": "string"}},
-            {{"title": "string", "authors": "string", "link": "string", "google_books_id": "string", "open_library_id": "string", "isbn13": "string"}}
+            {{"title": "string", "authors": "string", "link": "string", "google_books_id": "string", "open_library_id": "string", "isbn13": "string", "published_year": 1250}},
+            {{"title": "string", "authors": "string", "link": "string", "google_books_id": "string", "open_library_id": "string", "isbn13": "string", "published_year": 1492}},
+            {{"title": "string", "authors": "string", "link": "string", "google_books_id": "string", "open_library_id": "string", "isbn13": "string", "published_year": 1850}},
+            {{"title": "string", "authors": "string", "link": "string", "google_books_id": "string", "open_library_id": "string", "isbn13": "string", "published_year": 1998}}
           ],
           "assignments": [
             {{"assignment_title": "string", "description": "string"}}
@@ -105,7 +123,8 @@ course_creator_task:
     }}
   expected_output: >
     A valid JSON course with category-appropriate modules, at least 4 verified readings per module
-    each including google_books_id and/or open_library_id (plus isbn13 when known), and no invented books.
+    each including google_books_id and/or open_library_id (plus isbn13/published_year when known),
+    chronological ordering for history courses, and no invented books.
   agent: course_creator
   context:
     - librarian_task

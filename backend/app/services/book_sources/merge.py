@@ -52,6 +52,11 @@ def merge_records(books: Iterable[BookRecord]) -> Dict[str, BookRecord]:
             isbn13=primary.isbn13 or secondary.isbn13,
             google_books_id=primary.google_books_id or secondary.google_books_id,
             open_library_id=primary.open_library_id or secondary.open_library_id,
+            published_year=(
+                min(y for y in (primary.published_year, secondary.published_year) if y)
+                if (primary.published_year or secondary.published_year)
+                else None
+            ),
         )
         # Drop old key aliases pointing at existing
         for k, v in list(by_key.items()):
@@ -62,9 +67,15 @@ def merge_records(books: Iterable[BookRecord]) -> Dict[str, BookRecord]:
     return by_key
 
 
-def format_catalog_for_agent(books: List[BookRecord]) -> str:
+def format_catalog_for_agent(
+    books: List[BookRecord], *, chronological: bool = False
+) -> str:
+    ordered = list(books)
+    if chronological:
+        ordered.sort(key=lambda b: (b.published_year is None, b.published_year or 9999))
+
     blocks = []
-    for b in books:
+    for b in ordered:
         lines = [
             f"Source: {b.source}",
             f"ID: {b.source_id}",
@@ -75,6 +86,8 @@ def format_catalog_for_agent(books: List[BookRecord]) -> str:
             lines.append(f"OpenLibraryID: {b.open_library_id}")
         if b.isbn13:
             lines.append(f"ISBN13: {b.isbn13}")
+        if b.published_year:
+            lines.append(f"Year: {b.published_year}")
         lines.extend(
             [
                 f"Title: {b.title}",

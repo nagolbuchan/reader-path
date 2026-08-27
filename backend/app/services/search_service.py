@@ -21,6 +21,7 @@ from app.services.book_sources.tmu_sheets import (
     filter_candidates_for_topic,
 )
 from app.services.book_sources.types import BookRecord
+from app.services.history_order import order_history_course_chronologically
 from app.services.topic_classifier import catalog_queries_for, classify_topic
 
 ProgressCallback = Callable[[str, str], None]
@@ -148,7 +149,10 @@ class CourseGenerationService:
             progress("searching_books", "Searching verified catalogs")
             collected = await asyncio.to_thread(_collect_books, topic, category)
             catalog = start_catalog(collected)
-            verified_books = format_catalog_for_agent(list(catalog.values())[:40])
+            verified_books = format_catalog_for_agent(
+                list(catalog.values())[:40],
+                chronological=(category == "history"),
+            )
 
             progress("building_modules", "Building course modules")
             crew_instance = ReaderPathCrew()
@@ -169,6 +173,9 @@ class CourseGenerationService:
                 print(
                     f"Applied {len(repairs)} reading repair(s) for topic={topic!r}"
                 )
+
+            if category == "history":
+                course = order_history_course_chronologically(course)
 
             course = await asyncio.to_thread(enrich_course_with_gutenberg, course)
 

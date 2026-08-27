@@ -98,18 +98,23 @@ def catalog_queries_for(topic: str, category: TopicCategory) -> list[str]:
         return [
             t,
             f"{t} primary sources",
+            f"{t} chronicles",
+            f"{t} contemporary accounts",
             f"{t} documentary history",
-            f"{t} chronicles letters",
+            f"{t} letters memoirs",
             f"{t} history sources",
         ]
     if category == "sciences":
         return [
             t,
-            f"{t} textbook",
-            f"history of {t}",
-            f"{t} foundations",
-            f"{t} handbook",
             f"{t} principles",
+            f"{t} foundations",
+            f"{t} fundamentals textbook",
+            f"{t} theory",
+            f"history of {t}",
+            f"{t} problems exercises",
+            f"{t} handbook practice",
+            f"{t} textbook",
         ]
     if category == "trade_craft":
         return [

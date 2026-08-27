@@ -13,6 +13,7 @@ class BookReading(BaseModel):
     open_library_id: Optional[str] = None
     isbn13: Optional[str] = None
     gutenberg_url: Optional[str] = None
+    published_year: Optional[int] = None
 
 
 class AssignmentItem(BaseModel):

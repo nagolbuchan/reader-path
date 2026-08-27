@@ -144,6 +144,7 @@ def _claim(
         google_books_id=book.google_books_id,
         open_library_id=book.open_library_id,
         isbn13=book.isbn13,
+        published_year=book.published_year,
     )
 
 

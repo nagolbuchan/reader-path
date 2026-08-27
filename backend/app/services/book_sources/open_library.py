@@ -6,7 +6,7 @@ from typing import List, Optional
 
 import requests
 
-from app.services.book_sources.types import BookRecord, normalize_isbn
+from app.services.book_sources.types import BookRecord, normalize_isbn, parse_year
 
 
 class OpenLibraryError(Exception):
@@ -19,7 +19,7 @@ def search_open_library(query: str, max_results: int = 40) -> List[BookRecord]:
     params = {
         "q": query,
         "limit": min(max_results, 40),
-        "fields": "key,title,author_name,isbn,first_sentence,edition_key",
+        "fields": "key,title,author_name,isbn,first_sentence,edition_key,first_publish_year",
     }
     try:
         response = requests.get(
@@ -80,6 +80,7 @@ def search_open_library(query: str, max_results: int = 40) -> List[BookRecord]:
                 description=description,
                 isbn13=isbn13,
                 open_library_id=olid,
+                published_year=parse_year(doc.get("first_publish_year")),
             )
         )
     return books

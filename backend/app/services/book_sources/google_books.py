@@ -7,7 +7,7 @@ from typing import List, Optional
 import requests
 
 from app.core.config import settings
-from app.services.book_sources.types import BookRecord, normalize_isbn
+from app.services.book_sources.types import BookRecord, normalize_isbn, parse_year
 
 
 class GoogleBooksError(Exception):
@@ -97,6 +97,7 @@ def search_volumes(query: str, max_results: int = 40) -> List[BookRecord]:
                 description=description,
                 isbn13=_extract_isbn13(info),
                 google_books_id=volume_id,
+                published_year=parse_year(info.get("publishedDate")),
             )
         )
     return books
