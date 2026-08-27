@@ -38,6 +38,7 @@ class CrewJob:
     steps: List[JobStep] = field(default_factory=list)
     result: Optional[dict] = None
     error: Optional[str] = None
+    log_available: bool = False
     created_at: str = field(
         default_factory=lambda: datetime.now(timezone.utc).isoformat()
     )
@@ -50,6 +51,7 @@ class CrewJob:
             "steps": [s.to_dict() for s in self.steps],
             "result": self.result,
             "error": self.error,
+            "log_available": self.log_available,
             "created_at": self.created_at,
         }
 
@@ -107,6 +109,7 @@ class JobStore:
                 return
             job.status = "failed"
             job.error = error
+            job.log_available = True
             for step in job.steps:
                 if step_key and step.key == step_key:
                     step.status = "failed"
@@ -120,9 +123,16 @@ class JobStore:
                 return
             job.status = "complete"
             job.result = result
+            job.log_available = True
             for step in job.steps:
                 if step.status != "done":
                     step.status = "done"
+
+    def mark_log_available(self, job_id: str) -> None:
+        with self._lock:
+            job = self._jobs.get(job_id)
+            if job:
+                job.log_available = True
 
 
 job_store = JobStore()

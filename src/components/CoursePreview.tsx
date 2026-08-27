@@ -1,9 +1,10 @@
 import React from 'react';
-import type { CoursePreviewData } from '../lib/api';
+import { crewApi, type CoursePreviewData, type CrewRunLog } from '../lib/api';
 import { TOPIC_CATEGORY_LABELS } from '../lib/api';
 
 interface CoursePreviewProps {
   previewData: CoursePreviewData;
+  jobId?: string | null;
   onConfirm?: () => void | Promise<void>;
   onRegenerate?: () => void;
   isSaving?: boolean;
@@ -11,12 +12,20 @@ interface CoursePreviewProps {
 
 export const CoursePreview: React.FC<CoursePreviewProps> = ({
   previewData,
+  jobId = null,
   onConfirm,
   onRegenerate,
   isSaving = false,
 }) => {
   const [activeModuleIndex, setActiveModuleIndex] = React.useState(0);
   const [saving, setSaving] = React.useState(false);
+  const [showLog, setShowLog] = React.useState(false);
+  const [logLoading, setLogLoading] = React.useState(false);
+  const [logError, setLogError] = React.useState<string | null>(null);
+  const [runLog, setRunLog] = React.useState<CrewRunLog | null>(null);
+  const [logTab, setLogTab] = React.useState<'final' | 'agents' | 'verbose'>(
+    'final'
+  );
 
   const handleConfirm = async () => {
     if (!onConfirm) return;
@@ -28,8 +37,51 @@ export const CoursePreview: React.FC<CoursePreviewProps> = ({
     }
   };
 
+  const handleOpenLog = async () => {
+    if (!jobId) return;
+    setShowLog(true);
+    if (runLog) return;
+    setLogLoading(true);
+    setLogError(null);
+    try {
+      const log = await crewApi.getJobLog(jobId);
+      setRunLog(log);
+    } catch (err) {
+      setLogError(
+        err instanceof Error ? err.message : 'Could not load agent log.'
+      );
+    } finally {
+      setLogLoading(false);
+    }
+  };
+
+  const handleCopyLog = async () => {
+    if (!runLog) return;
+    await navigator.clipboard.writeText(JSON.stringify(runLog, null, 2));
+  };
+
   const busy = isSaving || saving;
   const currentModule = previewData.modules[activeModuleIndex];
+
+  const logBody = (() => {
+    if (!runLog) return '';
+    if (logTab === 'final') {
+      return JSON.stringify(runLog.final_course ?? previewData, null, 2);
+    }
+    if (logTab === 'agents') {
+      return JSON.stringify(
+        {
+          course_from_agents: runLog.course_from_agents,
+          crew_tasks: runLog.crew_tasks,
+          agent_raw_output: runLog.agent_raw_output,
+          repairs: runLog.repairs,
+        },
+        null,
+        2
+      );
+    }
+    return runLog.verbose_trace || '(no verbose trace captured)';
+  })();
 
   if (!currentModule) {
     return (
@@ -43,8 +95,7 @@ export const CoursePreview: React.FC<CoursePreviewProps> = ({
   }
 
   return (
-    <div className="flex h-full min-h-0 w-full overflow-hidden bg-[color:var(--rp-bg)] text-[color:var(--rp-ink)]">
-      {/* Module rail */}
+    <div className="relative flex h-full min-h-0 w-full overflow-hidden bg-[color:var(--rp-bg)] text-[color:var(--rp-ink)]">
       <aside className="flex w-72 shrink-0 flex-col border-r border-[color:var(--rp-stone-border)] bg-[color:var(--rp-bg-warm)]/80 sm:w-80">
         <div className="border-b border-[color:var(--rp-stone-border)] p-6">
           <p
@@ -103,29 +154,40 @@ export const CoursePreview: React.FC<CoursePreviewProps> = ({
           })}
         </nav>
 
-        <div className="flex gap-2 border-t border-[color:var(--rp-stone-border)] p-4">
-          <button
-            type="button"
-            onClick={handleConfirm}
-            disabled={busy}
-            className="flex-1 bg-[color:var(--rp-accent)] py-3 text-sm font-semibold tracking-wide text-[color:var(--rp-bg)] transition enabled:hover:brightness-110 disabled:opacity-60"
-            style={{ fontFamily: 'var(--rp-font-display)' }}
-          >
-            {busy ? 'Saving…' : 'Save course'}
-          </button>
-          <button
-            type="button"
-            onClick={onRegenerate}
-            disabled={busy}
-            className="flex-1 border border-[color:var(--rp-stone-border)] py-3 text-sm tracking-wide text-[color:var(--rp-highlight)] transition hover:border-[color:var(--rp-accent)] hover:text-[color:var(--rp-accent)] disabled:opacity-60"
-            style={{ fontFamily: 'var(--rp-font-display)' }}
-          >
-            Regenerate
-          </button>
+        <div className="space-y-2 border-t border-[color:var(--rp-stone-border)] p-4">
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={handleConfirm}
+              disabled={busy}
+              className="flex-1 bg-[color:var(--rp-accent)] py-3 text-sm font-semibold tracking-wide text-[color:var(--rp-bg)] transition enabled:hover:brightness-110 disabled:opacity-60"
+              style={{ fontFamily: 'var(--rp-font-display)' }}
+            >
+              {busy ? 'Saving…' : 'Save course'}
+            </button>
+            <button
+              type="button"
+              onClick={onRegenerate}
+              disabled={busy}
+              className="flex-1 border border-[color:var(--rp-stone-border)] py-3 text-sm tracking-wide text-[color:var(--rp-highlight)] transition hover:border-[color:var(--rp-accent)] hover:text-[color:var(--rp-accent)] disabled:opacity-60"
+              style={{ fontFamily: 'var(--rp-font-display)' }}
+            >
+              Regenerate
+            </button>
+          </div>
+          {jobId && (
+            <button
+              type="button"
+              onClick={handleOpenLog}
+              className="w-full border border-[color:var(--rp-stone-border)] py-2.5 text-xs tracking-wide text-[color:var(--rp-muted)] transition hover:border-[color:var(--rp-accent)] hover:text-[color:var(--rp-accent)]"
+              style={{ fontFamily: 'var(--rp-font-display)' }}
+            >
+              View agent log
+            </button>
+          )}
         </div>
       </aside>
 
-      {/* Module detail */}
       <main className="min-h-0 flex-1 overflow-y-auto px-6 py-8 sm:px-10 sm:py-10">
         <div className="mx-auto max-w-2xl">
           <h2
@@ -255,6 +317,103 @@ export const CoursePreview: React.FC<CoursePreviewProps> = ({
           </section>
         </div>
       </main>
+
+      {showLog && (
+        <div className="absolute inset-0 z-20 flex flex-col bg-[color:var(--rp-bg)]/95 backdrop-blur-sm">
+          <div className="flex items-center justify-between border-b border-[color:var(--rp-stone-border)] px-5 py-4">
+            <div>
+              <p
+                className="text-[10px] uppercase tracking-[0.2em] text-[color:var(--rp-accent)]"
+                style={{ fontFamily: 'var(--rp-font-display)' }}
+              >
+                Agent run log
+              </p>
+              <p
+                className="mt-1 text-sm text-[color:var(--rp-muted)]"
+                style={{ fontFamily: 'var(--rp-font-body)' }}
+              >
+                {runLog?.files?.run
+                  ? `Also on disk: ${runLog.files.run}`
+                  : jobId
+                    ? `Job ${jobId}`
+                    : ''}
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={handleCopyLog}
+                disabled={!runLog}
+                className="border border-[color:var(--rp-stone-border)] px-3 py-1.5 text-xs tracking-wide text-[color:var(--rp-highlight)] transition hover:border-[color:var(--rp-accent)] disabled:opacity-50"
+                style={{ fontFamily: 'var(--rp-font-display)' }}
+              >
+                Copy JSON
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowLog(false)}
+                className="border border-[color:var(--rp-stone-border)] px-3 py-1.5 text-xs tracking-wide text-[color:var(--rp-muted)] transition hover:border-[color:var(--rp-accent)] hover:text-[color:var(--rp-accent)]"
+                style={{ fontFamily: 'var(--rp-font-display)' }}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+
+          <div className="flex gap-2 border-b border-[color:var(--rp-stone-border)] px-5 py-2">
+            {(
+              [
+                ['final', 'Final course'],
+                ['agents', 'Agent output'],
+                ['verbose', 'Verbose trace'],
+              ] as const
+            ).map(([key, label]) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setLogTab(key)}
+                className={`px-3 py-1.5 text-xs tracking-wide transition ${
+                  logTab === key
+                    ? 'text-[color:var(--rp-accent)]'
+                    : 'text-[color:var(--rp-muted)] hover:text-[color:var(--rp-highlight)]'
+                }`}
+                style={{ fontFamily: 'var(--rp-font-display)' }}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          <div className="min-h-0 flex-1 overflow-auto p-5">
+            {logLoading && (
+              <p
+                className="text-sm text-[color:var(--rp-muted)]"
+                style={{ fontFamily: 'var(--rp-font-body)' }}
+              >
+                Loading log…
+              </p>
+            )}
+            {logError && (
+              <p
+                className="text-sm text-[#d4a09a]"
+                style={{ fontFamily: 'var(--rp-font-body)' }}
+              >
+                {logError}
+              </p>
+            )}
+            {!logLoading && !logError && (
+              <pre
+                className="whitespace-pre-wrap break-words text-xs leading-relaxed text-[color:var(--rp-ink)]/90"
+                style={{
+                  fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+                }}
+              >
+                {logBody}
+              </pre>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

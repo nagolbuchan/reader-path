@@ -1,3 +1,5 @@
+from typing import Any, Callable, Optional
+
 from crewai import Agent, Crew, Process, Task
 from crewai.project import CrewBase, agent, crew, task
 from app.agents.crews.tools import search_books_by_topic
@@ -8,6 +10,10 @@ class ReaderPathCrew:
 
     agents_config = "agents.yaml"
     tasks_config = "tasks.yaml"
+
+    # Set before calling reader_path_crew() to enable file / step logging.
+    _output_log_file: Optional[str] = None
+    _step_callback: Optional[Callable[..., Any]] = None
 
     @agent
     def librarian_assistant(self) -> Agent:
@@ -62,5 +68,7 @@ class ReaderPathCrew:
             tasks=self.tasks,
             process=Process.sequential,
             verbose=True,
+            output_log_file=self._output_log_file,
+            step_callback=self._step_callback,
             # memory=True,
         )

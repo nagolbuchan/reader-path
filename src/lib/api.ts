@@ -90,7 +90,26 @@ export interface CrewJobStatus {
   steps: CrewJobStep[];
   result?: CoursePreviewData | null;
   error?: string | null;
+  log_available?: boolean;
   created_at?: string;
+}
+
+export interface CrewRunLog {
+  run_id: string;
+  topic: string;
+  category?: string | null;
+  status: string;
+  started_at?: string;
+  finished_at?: string | null;
+  files?: Record<string, string>;
+  verbose_trace?: string;
+  agent_steps?: unknown[];
+  crew_tasks?: unknown[];
+  agent_raw_output?: string | null;
+  course_from_agents?: CoursePreviewData | null;
+  repairs?: string[];
+  final_course?: CoursePreviewData | null;
+  error?: string | null;
 }
 
 export interface GraphPayload {
@@ -169,6 +188,12 @@ export const crewApi = {
   getJob: async (jobId: string): Promise<CrewJobStatus> => {
     const response = await api.get(`/crew/jobs/${encodeURIComponent(jobId)}`);
     return response.data as CrewJobStatus;
+  },
+  getJobLog: async (jobId: string): Promise<CrewRunLog> => {
+    const response = await api.get(
+      `/crew/jobs/${encodeURIComponent(jobId)}/log`
+    );
+    return response.data as CrewRunLog;
   },
 };
 

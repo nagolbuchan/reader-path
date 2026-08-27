@@ -1,6 +1,7 @@
 import asyncio
 import json
 import re
+import uuid
 from typing import Any, Callable, List, Optional
 
 from app.agents.crews.crew import ReaderPathCrew
@@ -21,6 +22,11 @@ from app.services.book_sources.tmu_sheets import (
     filter_candidates_for_topic,
 )
 from app.services.book_sources.types import BookRecord
+from app.services.crew_run_log import (
+    CrewRunLogger,
+    capture_verbose_trace,
+    crew_tasks_log_path,
+)
 from app.services.history_order import order_history_course_chronologically
 from app.services.topic_classifier import catalog_queries_for, classify_topic
 
@@ -133,17 +139,23 @@ class CourseGenerationService:
         self,
         topic: str,
         on_progress: Optional[ProgressCallback] = None,
+        run_id: Optional[str] = None,
     ) -> CoursePreview:
         def progress(key: str, label: str = "") -> None:
             if on_progress:
                 on_progress(key, label)
 
+        run_id = run_id or str(uuid.uuid4())
+        run_log = CrewRunLogger(run_id=run_id, topic=topic)
+
         print("generate_course_from_topic called with topic:", topic)
+        print(f"crew run log: {run_log.dir_path}")
         clear_catalog()
 
         try:
             progress("classifying_topic", "Classifying topic")
             category = await asyncio.to_thread(classify_topic, topic)
+            run_log.category = category
             print("classified category:", category)
 
             progress("searching_books", "Searching verified catalogs")
@@ -156,19 +168,30 @@ class CourseGenerationService:
 
             progress("building_modules", "Building course modules")
             crew_instance = ReaderPathCrew()
+            crew_instance._output_log_file = str(crew_tasks_log_path(run_id))
+            crew_instance._step_callback = run_log.append_step
             crew = crew_instance.reader_path_crew()
-            result = await crew.kickoff_async(
-                inputs={
-                    "topic": topic,
-                    "category": category,
-                    "verified_books": verified_books,
-                }
+
+            with capture_verbose_trace(run_id) as trace_buf:
+                result = await crew.kickoff_async(
+                    inputs={
+                        "topic": topic,
+                        "category": category,
+                        "verified_books": verified_books,
+                    }
+                )
+            run_log.verbose_trace = trace_buf.getvalue()
+            run_log.agent_raw_output = str(
+                getattr(result, "raw", None) or result
             )
+
             course = parse_crew_course_result(result)
+            run_log.course_from_agents = course.model_dump()
 
             progress("validating_readings", "Validating & repairing readings")
             live_catalog = get_catalog() or catalog
             course, repairs = validate_course_readings(course, live_catalog)
+            run_log.repairs = list(repairs or [])
             if repairs:
                 print(
                     f"Applied {len(repairs)} reading repair(s) for topic={topic!r}"
@@ -181,6 +204,17 @@ class CourseGenerationService:
 
             course.topic = course.topic or topic
             course.category = category
+            run_log.final_course = course.model_dump()
+            run_log.status = "complete"
             return course
+        except Exception as exc:
+            run_log.status = "failed"
+            run_log.error = str(exc)
+            raise
         finally:
+            try:
+                path = run_log.write()
+                print(f"Wrote crew run log: {path}")
+            except Exception as log_exc:
+                print(f"Failed to write crew run log: {log_exc}")
             clear_catalog()

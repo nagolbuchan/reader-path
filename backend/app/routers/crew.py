@@ -1,8 +1,10 @@
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 from app.core.security import get_current_user
 from app.models.course import CoursePreview
+from app.services.crew_run_log import read_run_log
 from app.services.google_books import GoogleBooksError
 from app.services.job_store import job_store
 from app.services.search_service import CourseGenerationService
@@ -23,7 +25,7 @@ async def _run_generation_job(job_id: str, topic: str) -> None:
     try:
         course_service = CourseGenerationService()
         course: CoursePreview = await course_service.generate_course_from_topic(
-            topic, on_progress=on_progress
+            topic, on_progress=on_progress, run_id=job_id
         )
         job_store.complete(job_id, course.model_dump())
     except (GoogleBooksError, ValueError) as exc:
@@ -56,6 +58,22 @@ async def get_crew_job(job_id: str, current_user=Depends(get_current_user)):
     if job.user_id != current_user["user_id"]:
         raise HTTPException(status_code=403, detail="Not allowed")
     return job.to_dict()
+
+
+@router.get("/jobs/{job_id}/log")
+async def get_crew_job_log(job_id: str, current_user=Depends(get_current_user)):
+    """Return the full agent run log (verbose trace + course JSON)."""
+    job = job_store.get(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    if job.user_id != current_user["user_id"]:
+        raise HTTPException(status_code=403, detail="Not allowed")
+
+    log = read_run_log(job_id)
+    if not log:
+        raise HTTPException(status_code=404, detail="Run log not found yet")
+
+    return JSONResponse(content=log)
 
 
 @router.get("/kickoff", response_model=dict)

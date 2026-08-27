@@ -19,7 +19,7 @@ const POLL_MS = 1000;
 async function runCrewJobWithProgress(
   topic: string,
   onSteps: (steps: CrewJobStep[]) => void
-): Promise<CoursePreviewData> {
+): Promise<{ course: CoursePreviewData; jobId: string }> {
   const { job_id } = await crewApi.createJob(topic);
 
   for (;;) {
@@ -27,7 +27,7 @@ async function runCrewJobWithProgress(
     onSteps(job.steps || []);
 
     if (job.status === 'complete' && job.result) {
-      return job.result;
+      return { course: job.result, jobId: job_id };
     }
     if (job.status === 'failed') {
       throw new Error(job.error || 'Course generation failed.');
@@ -40,6 +40,7 @@ async function runCrewJobWithProgress(
 export const HeroSection: React.FC<HeroSectionProps> = ({ onCourseSaved }) => {
   const [input, setInput] = useState('');
   const [previewData, setPreviewData] = useState<CoursePreviewData | null>(null);
+  const [jobId, setJobId] = useState<string | null>(null);
   const [isPreviewing, setIsPreviewing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [jobSteps, setJobSteps] = useState<CrewJobStep[]>([]);
@@ -50,8 +51,9 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onCourseSaved }) => {
   const previewMutation = useMutation({
     mutationFn: (topic: string) =>
       runCrewJobWithProgress(topic, (steps) => setJobSteps(steps)),
-    onSuccess: (data) => {
-      setPreviewData({ ...data, topic: data.topic || input.trim() });
+    onSuccess: ({ course, jobId: id }) => {
+      setPreviewData({ ...course, topic: course.topic || input.trim() });
+      setJobId(id);
       setIsPreviewing(true);
       setError(null);
       setJobSteps([]);
@@ -80,6 +82,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onCourseSaved }) => {
       await queryClient.invalidateQueries({ queryKey: ['userGraph'] });
       setIsPreviewing(false);
       setPreviewData(null);
+      setJobId(null);
       setInput('');
       onCourseSaved?.();
     },
@@ -139,6 +142,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onCourseSaved }) => {
 
   const handleRegenerate = () => {
     setPreviewData(null);
+    setJobId(null);
     setIsPreviewing(false);
     setInput('');
     setError(null);
@@ -163,6 +167,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onCourseSaved }) => {
           <div className="min-h-0 flex-1 overflow-hidden">
             <CoursePreview
               previewData={previewData}
+              jobId={jobId}
               onConfirm={handleConfirm}
               onRegenerate={handleRegenerate}
               isSaving={saveMutation.isPending}
