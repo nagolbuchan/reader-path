@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import List, Optional
 
 from app.services.book_sources import google_books as gb
+from app.services.book_sources import library_of_congress as loc
 from app.services.book_sources import open_library as ol
 from app.services.book_sources.tmu_sheets import CandidateBook
 from app.services.book_sources.types import BookRecord
@@ -16,6 +17,9 @@ def resolve_candidate(candidate: CandidateBook) -> Optional[BookRecord]:
         if record:
             return record
         record = gb.resolve_by_isbn(candidate.isbn13)
+        if record:
+            return record
+        record = loc.resolve_by_isbn(candidate.isbn13)
         if record:
             return record
 
@@ -36,6 +40,13 @@ def resolve_candidate(candidate: CandidateBook) -> Optional[BookRecord]:
         gb_hits = []
     if gb_hits:
         return gb_hits[0]
+
+    try:
+        loc_hits = loc.search_loc(query, max_results=5)
+    except loc.LocError:
+        loc_hits = []
+    if loc_hits:
+        return loc_hits[0]
     return None
 
 

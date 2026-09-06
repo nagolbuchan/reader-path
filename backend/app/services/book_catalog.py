@@ -72,6 +72,12 @@ def _match_record(
             and reading.open_library_id == book.open_library_id
         ):
             return book
+        if (
+            reading.loc_control_number
+            and book.loc_control_number
+            and reading.loc_control_number == book.loc_control_number
+        ):
+            return book
         if reading.isbn13 and book.isbn13 and reading.isbn13 == book.isbn13:
             return book
 
@@ -101,6 +107,8 @@ def _is_used(book: BookRecord, seen_ids: set[str], seen_titles: set[str]) -> boo
         return True
     if book.open_library_id and f"ol:{book.open_library_id}" in seen_ids:
         return True
+    if book.loc_control_number and f"loc:{book.loc_control_number}" in seen_ids:
+        return True
     if book.isbn13 and f"isbn:{book.isbn13}" in seen_ids:
         return True
     if title_key and title_key in seen_titles:
@@ -114,6 +122,8 @@ def _mark_used(book: BookRecord, seen_ids: set[str], seen_titles: set[str]) -> N
         seen_ids.add(f"gb:{book.google_books_id}")
     if book.open_library_id:
         seen_ids.add(f"ol:{book.open_library_id}")
+    if book.loc_control_number:
+        seen_ids.add(f"loc:{book.loc_control_number}")
     if book.isbn13:
         seen_ids.add(f"isbn:{book.isbn13}")
     title_key = _normalize(book.title)
@@ -150,6 +160,7 @@ def book_to_reading(
         summary=summary or book.description,
         google_books_id=book.google_books_id,
         open_library_id=book.open_library_id,
+        loc_control_number=book.loc_control_number,
         isbn13=book.isbn13,
         published_year=book.published_year,
     )
@@ -173,6 +184,8 @@ def unused_catalog_readings(
                 seen_ids.add(f"gb:{reading.google_books_id}")
             if reading.open_library_id:
                 seen_ids.add(f"ol:{reading.open_library_id}")
+            if reading.loc_control_number:
+                seen_ids.add(f"loc:{reading.loc_control_number}")
             if reading.isbn13:
                 seen_ids.add(f"isbn:{reading.isbn13}")
             title_key = _normalize(reading.title)

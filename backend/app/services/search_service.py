@@ -15,6 +15,7 @@ from app.services.book_catalog import (
 )
 from app.services.book_cache import set_replacement_pool
 from app.services.book_sources import google_books as gb
+from app.services.book_sources import library_of_congress as loc
 from app.services.book_sources import open_library as ol
 from app.services.book_sources.gutenberg import enrich_course_with_gutenberg
 from app.services.book_sources.merge import format_catalog_for_agent, merge_records
@@ -75,8 +76,8 @@ def parse_crew_course_result(result: Any) -> CoursePreview:
 
 def _collect_books(topic: str, category: str) -> List[BookRecord]:
     """
-    Seed verified catalog from Google Books + Open Library, then resolve
-    TMU sheet candidates into the same catalog.
+    Seed verified catalog from Google Books, Open Library, and Library of
+    Congress, then resolve TMU sheet candidates into the same catalog.
     """
     collected: List[BookRecord] = []
     errors: List[str] = []
@@ -99,7 +100,15 @@ def _collect_books(topic: str, category: str) -> List[BookRecord]:
         except ol.OpenLibraryError as exc:
             errors.append(f"Open Library: {exc}")
 
-    # TMU curriculum candidates → resolve via GB/OL
+        try:
+            books = loc.search_loc(query, max_results=40)
+            if books:
+                sources_used.append("library_of_congress")
+                collected.extend(books)
+        except loc.LocError as exc:
+            errors.append(f"Library of Congress: {exc}")
+
+    # TMU curriculum candidates → resolve via OL / GB / LOC
     try:
         candidates = fetch_tmu_candidates()
         filtered = filter_candidates_for_topic(candidates, topic, limit=30)
@@ -121,7 +130,8 @@ def _collect_books(topic: str, category: str) -> List[BookRecord]:
     if not merged:
         detail = "; ".join(errors[:3]) if errors else "no results"
         raise ValueError(
-            "Could not build a verified book catalog from Google Books / Open Library. "
+            "Could not build a verified book catalog from Google Books / "
+            "Open Library / Library of Congress. "
             f"({detail})"
         )
 

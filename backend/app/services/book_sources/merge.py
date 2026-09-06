@@ -13,7 +13,11 @@ def merge_records(books: Iterable[BookRecord]) -> Dict[str, BookRecord]:
     Prefer Google Books when merging the same ISBN.
     """
     by_key: Dict[str, BookRecord] = {}
-    source_rank = {"google_books": 0, "open_library": 1}
+    source_rank = {
+        "google_books": 0,
+        "open_library": 1,
+        "library_of_congress": 2,
+    }
 
     for book in books:
         keys = [book.catalog_key]
@@ -23,13 +27,13 @@ def merge_records(books: Iterable[BookRecord]) -> Dict[str, BookRecord]:
             keys.append(f"gb:{book.google_books_id}")
         if book.open_library_id:
             keys.append(f"ol:{book.open_library_id}")
+        if book.loc_control_number:
+            keys.append(f"loc:{book.loc_control_number}")
 
         existing = None
-        existing_key = None
         for k in keys:
             if k in by_key:
                 existing = by_key[k]
-                existing_key = k
                 break
 
         if existing is None:
@@ -52,6 +56,8 @@ def merge_records(books: Iterable[BookRecord]) -> Dict[str, BookRecord]:
             isbn13=primary.isbn13 or secondary.isbn13,
             google_books_id=primary.google_books_id or secondary.google_books_id,
             open_library_id=primary.open_library_id or secondary.open_library_id,
+            loc_control_number=primary.loc_control_number
+            or secondary.loc_control_number,
             published_year=(
                 min(y for y in (primary.published_year, secondary.published_year) if y)
                 if (primary.published_year or secondary.published_year)
@@ -84,6 +90,8 @@ def format_catalog_for_agent(
             lines.append(f"GoogleBooksID: {b.google_books_id}")
         if b.open_library_id:
             lines.append(f"OpenLibraryID: {b.open_library_id}")
+        if b.loc_control_number:
+            lines.append(f"LocControlNumber: {b.loc_control_number}")
         if b.isbn13:
             lines.append(f"ISBN13: {b.isbn13}")
         if b.published_year:

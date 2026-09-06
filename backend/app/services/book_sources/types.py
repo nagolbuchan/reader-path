@@ -18,6 +18,7 @@ class BookRecord:
     isbn13: Optional[str] = None
     google_books_id: Optional[str] = None
     open_library_id: Optional[str] = None
+    loc_control_number: Optional[str] = None
     published_year: Optional[int] = None
 
     @property
@@ -28,6 +29,8 @@ class BookRecord:
             return f"gb:{self.google_books_id}"
         if self.open_library_id:
             return f"ol:{self.open_library_id}"
+        if self.loc_control_number:
+            return f"loc:{self.loc_control_number}"
         return f"{self.source}:{self.source_id}"
 
 
