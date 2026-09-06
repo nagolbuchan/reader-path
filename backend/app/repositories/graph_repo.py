@@ -1,6 +1,13 @@
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from app.repositories.base_repo import BaseRepository
+
+
+def _prop(props: Dict[str, Any], *keys: str, default: Any = None) -> Any:
+    for key in keys:
+        if props.get(key) not in (None, ""):
+            return props[key]
+    return default
 
 
 class GraphRepository(BaseRepository):
@@ -47,16 +54,15 @@ class GraphRepository(BaseRepository):
                 }
 
         user_props = dict(user)
-        uid = user_props.get("userId") or user_props.get("user_id")
+        uid = _prop(user_props, "userId", "user_id")
         user_node_id = f"user_{uid}"
         add_node(
             user_node_id,
             "User",
-            user_props.get("name") or user_props.get("email") or "You",
+            _prop(user_props, "displayName", "name", "email") or "You",
             user_props,
         )
 
-        # Re-query relationships explicitly for clean edge list
         rel_query = """
         MATCH (u:User {userId: $user_id})
         OPTIONAL MATCH (u)-[:CREATED]->(c:Course)
@@ -79,7 +85,7 @@ class GraphRepository(BaseRepository):
 
             if c:
                 c_props = dict(c)
-                c_id = f"course_{c_props.get('course_id')}"
+                c_id = f"course_{_prop(c_props, 'courseId', 'course_id')}"
                 add_node(c_id, "Course", c_props.get("title") or "Course", c_props)
                 edge = {"from": user_node_id, "to": c_id, "type": "CREATED"}
                 if edge not in relationships:
@@ -87,7 +93,7 @@ class GraphRepository(BaseRepository):
 
                 if t:
                     t_props = dict(t)
-                    t_id = f"topic_{t_props.get('slug') or t_props.get('name')}"
+                    t_id = f"topic_{_prop(t_props, 'topicId', 'slug', 'name')}"
                     add_node(t_id, "Topic", t_props.get("name") or "Topic", t_props)
                     edge = {"from": c_id, "to": t_id, "type": "ABOUT"}
                     if edge not in relationships:
@@ -95,46 +101,46 @@ class GraphRepository(BaseRepository):
 
             if c and m:
                 m_props = dict(m)
-                m_id = f"module_{m_props.get('module_id')}"
+                m_id = f"module_{_prop(m_props, 'moduleId', 'module_id')}"
                 add_node(m_id, "Module", m_props.get("title") or "Module", m_props)
-                c_id = f"course_{dict(c).get('course_id')}"
+                c_id = f"course_{_prop(dict(c), 'courseId', 'course_id')}"
                 edge = {"from": c_id, "to": m_id, "type": "HAS_MODULE"}
                 if edge not in relationships:
                     relationships.append(edge)
 
             if m and b:
                 b_props = dict(b)
-                b_id = f"book_{b_props.get('book_id') or b_props.get('title')}"
+                b_id = f"book_{_prop(b_props, 'bookId', 'book_id', 'title')}"
                 add_node(b_id, "Book", b_props.get("title") or "Book", b_props)
-                m_id = f"module_{dict(m).get('module_id')}"
+                m_id = f"module_{_prop(dict(m), 'moduleId', 'module_id')}"
                 edge = {"from": m_id, "to": b_id, "type": "ASSIGNS_READING"}
                 if edge not in relationships:
                     relationships.append(edge)
 
             if m and a:
                 a_props = dict(a)
-                a_id = f"assignment_{a_props.get('assignment_id')}"
+                a_id = f"assignment_{_prop(a_props, 'assignmentId', 'assignment_id')}"
                 add_node(
                     a_id,
                     "Assignment",
                     a_props.get("title") or "Assignment",
                     a_props,
                 )
-                m_id = f"module_{dict(m).get('module_id')}"
+                m_id = f"module_{_prop(dict(m), 'moduleId', 'module_id')}"
                 edge = {"from": m_id, "to": a_id, "type": "HAS_ASSIGNMENT"}
                 if edge not in relationships:
                     relationships.append(edge)
 
             if b and auth:
                 auth_props = dict(auth)
-                auth_id = f"author_{auth_props.get('name')}"
+                auth_id = f"author_{_prop(auth_props, 'authorId', 'name')}"
                 add_node(
                     auth_id,
                     "Author",
                     auth_props.get("name") or "Author",
                     auth_props,
                 )
-                b_id = f"book_{dict(b).get('book_id') or dict(b).get('title')}"
+                b_id = f"book_{_prop(dict(b), 'bookId', 'book_id', 'title')}"
                 edge = {"from": b_id, "to": auth_id, "type": "WRITTEN_BY"}
                 if edge not in relationships:
                     relationships.append(edge)

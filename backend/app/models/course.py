@@ -11,6 +11,7 @@ class BookReading(BaseModel):
     summary: Optional[str] = None
     google_books_id: Optional[str] = None
     open_library_id: Optional[str] = None
+    loc_control_number: Optional[str] = None
     isbn13: Optional[str] = None
     gutenberg_url: Optional[str] = None
     published_year: Optional[int] = None
@@ -46,6 +47,7 @@ class CourseCreateRequest(BaseModel):
     topic: str
     category: Optional[TopicCategory] = None
     modules: List[ModuleItem] = Field(default_factory=list)
+    replacement_pool: List[BookReading] = Field(default_factory=list)
 
 
 class CourseResponse(BaseModel):

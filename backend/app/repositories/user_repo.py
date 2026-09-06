@@ -3,6 +3,12 @@ from typing import Any, Dict, Optional
 from app.repositories.base_repo import BaseRepository
 
 
+def _username_from_email(email: Optional[str]) -> Optional[str]:
+    if not email or "@" not in email:
+        return None
+    return email.split("@", 1)[0].strip() or None
+
+
 class UserRepository(BaseRepository):
     async def merge_user(
         self,
@@ -17,20 +23,23 @@ class UserRepository(BaseRepository):
         MERGE (u:User {userId: $user_id})
         ON CREATE SET
             u.email = $email,
-            u.name = $name,
+            u.username = $username,
+            u.displayName = $display_name,
             u.image = $image,
             u.provider = $provider,
-            u.created_at = datetime()
+            u.createdAt = datetime(),
+            u.lastActiveAt = datetime()
         ON MATCH SET
             u.email = coalesce($email, u.email),
-            u.name = coalesce($name, u.name),
+            u.username = coalesce($username, u.username),
+            u.displayName = coalesce($display_name, u.displayName, u.name),
             u.image = coalesce($image, u.image),
             u.provider = $provider,
-            u.updated_at = datetime()
+            u.lastActiveAt = datetime()
         RETURN {
             user_id: u.userId,
             email: u.email,
-            name: u.name,
+            name: coalesce(u.displayName, u.name),
             image: u.image,
             provider: u.provider
         } AS user
@@ -40,7 +49,8 @@ class UserRepository(BaseRepository):
             {
                 "user_id": user_id,
                 "email": email,
-                "name": name,
+                "username": _username_from_email(email),
+                "display_name": name,
                 "image": image,
                 "provider": provider,
             },
@@ -53,7 +63,7 @@ class UserRepository(BaseRepository):
         RETURN {
             user_id: u.userId,
             email: u.email,
-            name: u.name,
+            name: coalesce(u.displayName, u.name),
             image: u.image,
             provider: u.provider
         } AS user

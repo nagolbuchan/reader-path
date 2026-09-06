@@ -24,6 +24,7 @@ export interface BookReading {
   summary?: string;
   google_books_id?: string;
   open_library_id?: string;
+  loc_control_number?: string;
   isbn13?: string;
   gutenberg_url?: string;
   published_year?: number;
@@ -156,7 +157,9 @@ export const courseApi = {
     title: string;
     description: string;
     topic: string;
+    category?: TopicCategory;
     modules: ModuleItem[];
+    replacement_pool?: BookReading[];
   }) => {
     const response = await api.post('/courses', course);
     return response.data as {

@@ -75,7 +75,9 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onCourseSaved }) => {
         title: course.title,
         description: course.description,
         topic: course.topic || input.trim() || course.title,
+        category: course.category,
         modules: course.modules,
+        replacement_pool: course.replacement_pool,
       });
     },
     onSuccess: async () => {
