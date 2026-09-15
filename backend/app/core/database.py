@@ -2,6 +2,7 @@
 from pathlib import Path
 
 from neo4j import AsyncDriver, AsyncGraphDatabase
+from neo4j.exceptions import ClientError
 
 from app.core.config import settings
 
@@ -37,10 +38,23 @@ async def apply_schema(graph_driver: AsyncDriver) -> None:
         print(f"Schema file missing: {_SCHEMA_FILE}")
         return
     statements = _cypher_statements(_SCHEMA_FILE.read_text(encoding="utf-8"))
+    applied = 0
+    skipped = 0
     async with graph_driver.session() as session:
         for stmt in statements:
-            await session.run(stmt)
-    print(f"Applied {len(statements)} Neo4j schema statement(s)")
+            try:
+                await session.run(stmt)
+                applied += 1
+            except ClientError as exc:
+                code = getattr(exc, "code", "") or ""
+                if "AlreadyExists" in code or "EquivalentSchemaRule" in code:
+                    skipped += 1
+                    continue
+                raise
+    print(
+        f"Neo4j schema: applied {applied}, skipped {skipped} existing "
+        f"({len(statements)} statements)"
+    )
 
 
 async def init_driver():

@@ -128,7 +128,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onCourseSaved }) => {
       },
       {
         key: 'validating_readings',
-        label: 'Validating & repairing readings',
+        label: 'Validating',
         status: 'pending',
       },
     ]);
