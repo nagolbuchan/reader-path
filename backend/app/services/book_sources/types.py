@@ -16,6 +16,8 @@ class BookRecord:
     link: str
     description: str
     isbn13: Optional[str] = None
+    isbn10: Optional[str] = None
+    amazon_url: Optional[str] = None
     google_books_id: Optional[str] = None
     open_library_id: Optional[str] = None
     loc_control_number: Optional[str] = None
@@ -39,6 +41,51 @@ def normalize_isbn(raw: str) -> Optional[str]:
     if len(digits) == 10 or len(digits) == 13:
         return digits.upper()
     return None
+
+
+def _isbn10_check_digit(body9: str) -> str:
+    total = sum((10 - i) * int(body9[i]) for i in range(9))
+    remainder = total % 11
+    check = 11 - remainder
+    if check == 10:
+        return "X"
+    if check == 11:
+        return "0"
+    return str(check)
+
+
+def isbn13_to_isbn10(isbn: Optional[str]) -> Optional[str]:
+    """Convert ISBN-13 (978…) to ISBN-10. 979 prefixes have no ISBN-10 equivalent."""
+    cleaned = normalize_isbn(isbn or "")
+    if not cleaned:
+        return None
+    if len(cleaned) == 10:
+        return cleaned
+    if len(cleaned) == 13 and cleaned.startswith("978"):
+        body = cleaned[3:12]
+        if body.isdigit() and len(body) == 9:
+            return body + _isbn10_check_digit(body)
+    return None
+
+
+def amazon_url_for_isbn(isbn: Optional[str], tag: str = "") -> Optional[str]:
+    """
+    Stable Amazon URL from an ISBN. Prefer /dp/{isbn10} when a 978 ISBN-13
+    (or native ISBN-10) is available; otherwise ISBN search. No ISBN → None.
+    """
+    cleaned = normalize_isbn(isbn or "")
+    if not cleaned:
+        return None
+    isbn10 = isbn13_to_isbn10(cleaned)
+    if isbn10:
+        url = f"https://www.amazon.com/dp/{isbn10}"
+    else:
+        url = f"https://www.amazon.com/s?k={cleaned}"
+    tag = (tag or "").strip()
+    if tag:
+        sep = "&" if "?" in url else "?"
+        url = f"{url}{sep}tag={tag}"
+    return url
 
 
 def parse_year(raw: object) -> Optional[int]:

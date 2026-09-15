@@ -36,6 +36,8 @@ class Settings(BaseSettings):
     GOOGLE_BOOKS_API_KEY: Optional[str] = None
     # Comma-separated public Google Sheets CSV export URLs (TMU textbook lists)
     TMU_SHEET_CSV_URLS: str = ""
+    # Optional Amazon Associates tag appended to derived book URLs (empty = none)
+    AMAZON_ASSOCIATE_TAG: str = ""
 
     RATE_LIMIT_PER_MINUTE: int = 10
 

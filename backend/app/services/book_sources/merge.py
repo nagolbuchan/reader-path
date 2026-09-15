@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Dict, Iterable, List
 
-from app.services.book_sources.types import BookRecord
+from app.services.book_sources.types import BookRecord, isbn13_to_isbn10
 
 
 def merge_records(books: Iterable[BookRecord]) -> Dict[str, BookRecord]:
@@ -54,6 +54,10 @@ def merge_records(books: Iterable[BookRecord]) -> Dict[str, BookRecord]:
             link=primary.link or secondary.link,
             description=primary.description or secondary.description,
             isbn13=primary.isbn13 or secondary.isbn13,
+            isbn10=primary.isbn10
+            or secondary.isbn10
+            or isbn13_to_isbn10(primary.isbn13 or secondary.isbn13),
+            amazon_url=primary.amazon_url or secondary.amazon_url,
             google_books_id=primary.google_books_id or secondary.google_books_id,
             open_library_id=primary.open_library_id or secondary.open_library_id,
             loc_control_number=primary.loc_control_number

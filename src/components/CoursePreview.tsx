@@ -280,6 +280,17 @@ export const CoursePreview: React.FC<CoursePreviewProps> = ({
                       View catalog listing →
                     </a>
                   )}
+                  {book.amazon_url && (
+                    <a
+                      href={book.amazon_url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="mt-3 mr-4 inline-block text-sm text-[color:var(--rp-accent)] underline decoration-[color:var(--rp-stone-border)] underline-offset-4 transition hover:text-[color:var(--rp-highlight)] hover:decoration-[color:var(--rp-accent)]"
+                      style={{ fontFamily: 'var(--rp-font-body)' }}
+                    >
+                      Buy on Amazon →
+                    </a>
+                  )}
                   {book.gutenberg_url && (
                     <a
                       href={book.gutenberg_url}

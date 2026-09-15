@@ -7,7 +7,12 @@ from typing import List, Optional
 import requests
 
 from app.core.config import settings
-from app.services.book_sources.types import BookRecord, normalize_isbn, parse_year
+from app.services.book_sources.types import (
+    BookRecord,
+    isbn13_to_isbn10,
+    normalize_isbn,
+    parse_year,
+)
 
 
 class GoogleBooksError(Exception):
@@ -22,6 +27,13 @@ def _extract_isbn13(info: dict) -> Optional[str]:
     for ident in info.get("industryIdentifiers") or []:
         if ident.get("type") == "ISBN_13":
             return normalize_isbn(ident.get("identifier") or "")
+    for ident in info.get("industryIdentifiers") or []:
+        if ident.get("type") == "ISBN_10":
+            return normalize_isbn(ident.get("identifier") or "")
+    return None
+
+
+def _extract_isbn10(info: dict) -> Optional[str]:
     for ident in info.get("industryIdentifiers") or []:
         if ident.get("type") == "ISBN_10":
             return normalize_isbn(ident.get("identifier") or "")
@@ -87,6 +99,7 @@ def search_volumes(query: str, max_results: int = 40) -> List[BookRecord]:
             or info.get("previewLink")
             or f"https://books.google.com/books?id={volume_id}"
         )
+        isbn13 = _extract_isbn13(info)
         books.append(
             BookRecord(
                 source="google_books",
@@ -95,7 +108,8 @@ def search_volumes(query: str, max_results: int = 40) -> List[BookRecord]:
                 authors=", ".join(authors_list),
                 link=link,
                 description=description,
-                isbn13=_extract_isbn13(info),
+                isbn13=isbn13,
+                isbn10=_extract_isbn10(info) or isbn13_to_isbn10(isbn13),
                 google_books_id=volume_id,
                 published_year=parse_year(info.get("publishedDate")),
             )
@@ -112,6 +126,6 @@ def resolve_by_isbn(isbn: str) -> Optional[BookRecord]:
     except GoogleBooksError:
         return None
     for book in books:
-        if book.isbn13 == cleaned or cleaned in (book.isbn13 or ""):
+        if cleaned in (book.isbn13, book.isbn10):
             return book
     return books[0] if books else None

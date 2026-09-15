@@ -13,6 +13,8 @@ class BookReading(BaseModel):
     open_library_id: Optional[str] = None
     loc_control_number: Optional[str] = None
     isbn13: Optional[str] = None
+    isbn10: Optional[str] = None
+    amazon_url: Optional[str] = None
     gutenberg_url: Optional[str] = None
     published_year: Optional[int] = None
 

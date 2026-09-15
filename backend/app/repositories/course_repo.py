@@ -53,6 +53,8 @@ def _book_payload(book: BookReading) -> Dict[str, Any]:
         "title": book.title,
         "description": book.summary or "",
         "isbn13": book.isbn13,
+        "isbn10": book.isbn10,
+        "amazonUrl": book.amazon_url,
         "googleBooksId": book.google_books_id,
         "openLibraryId": book.open_library_id,
         "locControlNumber": book.loc_control_number,
@@ -144,6 +146,8 @@ class CourseRepository(BaseRepository):
                     b.title = reading.title,
                     b.description = reading.description,
                     b.isbn13 = reading.isbn13,
+                    b.isbn10 = reading.isbn10,
+                    b.amazonUrl = reading.amazonUrl,
                     b.googleBooksId = reading.googleBooksId,
                     b.openLibraryId = reading.openLibraryId,
                     b.locControlNumber = reading.locControlNumber,
@@ -155,6 +159,8 @@ class CourseRepository(BaseRepository):
                     b.lastVerifiedAt = datetime()
                 ON MATCH SET
                     b.isbn13 = coalesce(b.isbn13, reading.isbn13),
+                    b.isbn10 = coalesce(b.isbn10, reading.isbn10),
+                    b.amazonUrl = coalesce(b.amazonUrl, reading.amazonUrl),
                     b.googleBooksId = coalesce(b.googleBooksId, reading.googleBooksId),
                     b.openLibraryId = coalesce(b.openLibraryId, reading.openLibraryId),
                     b.locControlNumber = coalesce(b.locControlNumber, reading.locControlNumber),
@@ -198,6 +204,8 @@ class CourseRepository(BaseRepository):
                 b.title = reading.title,
                 b.description = reading.description,
                 b.isbn13 = reading.isbn13,
+                b.isbn10 = reading.isbn10,
+                b.amazonUrl = reading.amazonUrl,
                 b.googleBooksId = reading.googleBooksId,
                 b.openLibraryId = reading.openLibraryId,
                 b.locControlNumber = reading.locControlNumber,
@@ -209,6 +217,8 @@ class CourseRepository(BaseRepository):
                 b.lastVerifiedAt = datetime()
             ON MATCH SET
                 b.isbn13 = coalesce(b.isbn13, reading.isbn13),
+                b.isbn10 = coalesce(b.isbn10, reading.isbn10),
+                b.amazonUrl = coalesce(b.amazonUrl, reading.amazonUrl),
                 b.googleBooksId = coalesce(b.googleBooksId, reading.googleBooksId),
                 b.openLibraryId = coalesce(b.openLibraryId, reading.openLibraryId),
                 b.locControlNumber = coalesce(b.locControlNumber, reading.locControlNumber),

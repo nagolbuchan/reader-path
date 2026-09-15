@@ -7,8 +7,13 @@ import threading
 import unicodedata
 from typing import Dict, Iterable, List, Optional, Tuple
 
+from app.core.config import settings
 from app.models.course import BookReading, CoursePreview, ModuleItem
-from app.services.book_sources.types import BookRecord
+from app.services.book_sources.types import (
+    BookRecord,
+    amazon_url_for_isbn,
+    isbn13_to_isbn10,
+)
 
 _lock = threading.Lock()
 _active_catalog: Optional[Dict[str, BookRecord]] = None
@@ -153,6 +158,11 @@ def _claim(
 def book_to_reading(
     book: BookRecord, summary: Optional[str] = None
 ) -> BookReading:
+    isbn10 = book.isbn10 or isbn13_to_isbn10(book.isbn13)
+    amazon_url = book.amazon_url or amazon_url_for_isbn(
+        isbn10 or book.isbn13,
+        tag=settings.AMAZON_ASSOCIATE_TAG or "",
+    )
     return BookReading(
         title=book.title,
         authors=book.authors,
@@ -162,6 +172,8 @@ def book_to_reading(
         open_library_id=book.open_library_id,
         loc_control_number=book.loc_control_number,
         isbn13=book.isbn13,
+        isbn10=isbn10,
+        amazon_url=amazon_url,
         published_year=book.published_year,
     )
 

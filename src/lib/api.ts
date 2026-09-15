@@ -26,6 +26,8 @@ export interface BookReading {
   open_library_id?: string;
   loc_control_number?: string;
   isbn13?: string;
+  isbn10?: string;
+  amazon_url?: string;
   gutenberg_url?: string;
   published_year?: number;
 }
