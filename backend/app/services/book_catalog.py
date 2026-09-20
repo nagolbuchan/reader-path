@@ -1,4 +1,4 @@
-"""Verified book catalog for a single generation run + reading validation."""
+"""Run catalog + thin post-crew membership/uniqueness check."""
 
 from __future__ import annotations
 
@@ -60,98 +60,41 @@ def _normalize(text: str) -> str:
     return text
 
 
+def _identity_keys(book: BookRecord) -> set[str]:
+    keys = {book.catalog_key}
+    if book.google_books_id:
+        keys.add(f"gb:{book.google_books_id}")
+    return keys
+
+
 def _match_record(
     reading: BookReading, catalog: Dict[str, BookRecord]
 ) -> Optional[BookRecord]:
-    for book in catalog.values():
-        if (
-            reading.google_books_id
-            and book.google_books_id
-            and reading.google_books_id == book.google_books_id
-        ):
-            return book
-        if (
-            reading.open_library_id
-            and book.open_library_id
-            and reading.open_library_id == book.open_library_id
-        ):
-            return book
-        if (
-            reading.loc_control_number
-            and book.loc_control_number
-            and reading.loc_control_number == book.loc_control_number
-        ):
-            return book
-        if reading.isbn13 and book.isbn13 and reading.isbn13 == book.isbn13:
-            return book
+    """Match by google_books_id, then isbn13, then exact normalized title."""
+    if reading.google_books_id:
+        for book in catalog.values():
+            if book.google_books_id == reading.google_books_id:
+                return book
+    if reading.isbn13:
+        for book in catalog.values():
+            if book.isbn13 == reading.isbn13:
+                return book
 
     title_n = _normalize(reading.title)
-    authors_n = _normalize(reading.authors or "")
     if not title_n:
         return None
-
     for book in catalog.values():
-        bt = _normalize(book.title)
-        if title_n != bt and title_n not in bt and bt not in title_n:
-            continue
-        if authors_n:
-            a_tokens = set(authors_n.split())
-            b_tokens = set(_normalize(book.authors).split())
-            if a_tokens and b_tokens and not (a_tokens & b_tokens):
-                continue
-        return book
-    return None
-
-
-def _is_used(book: BookRecord, seen_ids: set[str], seen_titles: set[str]) -> bool:
-    title_key = _normalize(book.title)
-    if book.catalog_key in seen_ids:
-        return True
-    if book.google_books_id and f"gb:{book.google_books_id}" in seen_ids:
-        return True
-    if book.open_library_id and f"ol:{book.open_library_id}" in seen_ids:
-        return True
-    if book.loc_control_number and f"loc:{book.loc_control_number}" in seen_ids:
-        return True
-    if book.isbn13 and f"isbn:{book.isbn13}" in seen_ids:
-        return True
-    if title_key and title_key in seen_titles:
-        return True
-    return False
-
-
-def _mark_used(book: BookRecord, seen_ids: set[str], seen_titles: set[str]) -> None:
-    seen_ids.add(book.catalog_key)
-    if book.google_books_id:
-        seen_ids.add(f"gb:{book.google_books_id}")
-    if book.open_library_id:
-        seen_ids.add(f"ol:{book.open_library_id}")
-    if book.loc_control_number:
-        seen_ids.add(f"loc:{book.loc_control_number}")
-    if book.isbn13:
-        seen_ids.add(f"isbn:{book.isbn13}")
-    title_key = _normalize(book.title)
-    if title_key:
-        seen_titles.add(title_key)
-
-
-def _next_unused(
-    catalog: Dict[str, BookRecord], seen_ids: set[str], seen_titles: set[str]
-) -> Optional[BookRecord]:
-    for book in catalog.values():
-        if not _is_used(book, seen_ids, seen_titles):
+        if _normalize(book.title) == title_n:
             return book
     return None
 
 
-def _claim(
-    book: BookRecord,
-    seen_ids: set[str],
-    seen_titles: set[str],
-    summary: Optional[str] = None,
-) -> BookReading:
-    _mark_used(book, seen_ids, seen_titles)
-    return book_to_reading(book, summary=summary)
+def _is_used(book: BookRecord, seen_ids: set[str]) -> bool:
+    return bool(_identity_keys(book) & seen_ids)
+
+
+def _mark_used(book: BookRecord, seen_ids: set[str]) -> None:
+    seen_ids.update(_identity_keys(book))
 
 
 def book_to_reading(
@@ -182,31 +125,22 @@ def unused_catalog_readings(
 ) -> List[BookReading]:
     """Return verified catalog books that are not assigned anywhere in the course."""
     seen_ids: set[str] = set()
-    seen_titles: set[str] = set()
 
     for module in course.modules:
         for reading in module.assigned_readings:
             match = _match_record(reading, catalog)
             if match:
-                _mark_used(match, seen_ids, seen_titles)
+                _mark_used(match, seen_ids)
                 continue
-            # Still reserve whatever IDs/title the course claims, even if unmatched.
             if reading.google_books_id:
                 seen_ids.add(f"gb:{reading.google_books_id}")
-            if reading.open_library_id:
-                seen_ids.add(f"ol:{reading.open_library_id}")
-            if reading.loc_control_number:
-                seen_ids.add(f"loc:{reading.loc_control_number}")
             if reading.isbn13:
                 seen_ids.add(f"isbn:{reading.isbn13}")
-            title_key = _normalize(reading.title)
-            if title_key:
-                seen_titles.add(title_key)
 
     return [
         book_to_reading(book)
         for book in catalog.values()
-        if not _is_used(book, seen_ids, seen_titles)
+        if not _is_used(book, seen_ids)
     ]
 
 
@@ -216,9 +150,9 @@ def validate_course_readings(
     """
     Keep only readings that match the Google Books–validated run catalog.
 
-    Unverified and duplicate readings are dropped (not swapped for unrelated
-    leftover titles). A short module may be padded only from unused validated
-    catalog books for this topic. Fails if a module cannot reach MIN real readings.
+    Unverified and duplicate readings are dropped. Short modules are not
+    padded from leftover catalog titles. Fails if a module cannot reach MIN
+    unique verified readings.
     """
     if not catalog:
         raise ValueError(
@@ -227,7 +161,6 @@ def validate_course_readings(
 
     repairs: List[str] = []
     seen_ids: set[str] = set()
-    seen_titles: set[str] = set()
     new_modules: List[ModuleItem] = []
 
     for module in course.modules:
@@ -242,29 +175,18 @@ def validate_course_readings(
                 )
                 continue
 
-            if _is_used(match, seen_ids, seen_titles):
+            if _is_used(match, seen_ids):
                 repairs.append(
                     f"{module.module_title}: dropped duplicate “{match.title}”"
                 )
                 continue
 
+            _mark_used(match, seen_ids)
             verified.append(
-                _claim(
-                    match,
-                    seen_ids,
-                    seen_titles,
-                    summary=reading.summary or match.description,
+                book_to_reading(
+                    match, summary=reading.summary or match.description
                 )
             )
-
-        while len(verified) < MIN_READINGS_PER_MODULE:
-            filler = _next_unused(catalog, seen_ids, seen_titles)
-            if not filler:
-                break
-            repairs.append(
-                f"{module.module_title}: padded with topic-sourced “{filler.title}”"
-            )
-            verified.append(_claim(filler, seen_ids, seen_titles))
 
         if len(verified) < MIN_READINGS_PER_MODULE:
             raise ValueError(
