@@ -32,7 +32,9 @@ class Settings(BaseSettings):
     SESSION_MAX_AGE_SECONDS: int = 60 * 60 * 24 * 7  # 7 days
 
     # External APIs
+    # Serper is used for untrusted web discovery only (never exposed to the LLM).
     SERPER_API_KEY: Optional[str] = None
+    # Google Books is the existence gate after discovery, not the search engine.
     GOOGLE_BOOKS_API_KEY: Optional[str] = None
     # Comma-separated public Google Sheets CSV export URLs (TMU textbook lists)
     TMU_SHEET_CSV_URLS: str = ""

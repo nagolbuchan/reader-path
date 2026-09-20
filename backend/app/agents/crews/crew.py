@@ -2,7 +2,7 @@ from typing import Any, Callable, Optional
 
 from crewai import Agent, Crew, Process, Task
 from crewai.project import CrewBase, agent, crew, task
-from app.agents.crews.tools import search_books_by_topic
+from app.agents.crews.tools import search_and_validate_books
 
 @CrewBase
 class ReaderPathCrew:
@@ -29,17 +29,11 @@ class ReaderPathCrew:
             config=self.agents_config['librarian'],
             verbose=True,
             llm="gpt-4o-mini",
-            tools=[search_books_by_topic]
+            tools=[search_and_validate_books]
         )
 
-    # @agent
-    # def reviewer(self) -> Agent:
-    #     return Agent(
-    #         config=self.agents_config['reviewer'],
-    #         verbose=True,
-    #         llm="gpt-4o-mini",
-    #         tools=[SerperDevTool()]
-        # )
+    # Reviewer + raw SerperDevTool stay unused. Web search is gated inside
+    # search_and_validate_books so the model never sees unvalidated snippets.
 
     @agent
     def course_creator(self) -> Agent:

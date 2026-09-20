@@ -92,7 +92,7 @@ def classify_topic(topic: str) -> TopicCategory:
 
 
 def catalog_queries_for(topic: str, category: TopicCategory) -> list[str]:
-    """Multiple Google Books queries to seed a verified catalog."""
+    """Query variants for web discovery and untrusted catalog suggestions."""
     t = topic.strip()
     if category == "history":
         return [

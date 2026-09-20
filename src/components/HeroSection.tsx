@@ -117,8 +117,13 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onCourseSaved }) => {
     setJobSteps([
       { key: 'classifying_topic', label: 'Classifying topic', status: 'pending' },
       {
-        key: 'searching_books',
-        label: 'Searching verified catalogs',
+        key: 'discovering_books',
+        label: 'Searching the web for books',
+        status: 'pending',
+      },
+      {
+        key: 'validating_books',
+        label: 'Validating books exist',
         status: 'pending',
       },
       {
@@ -128,7 +133,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onCourseSaved }) => {
       },
       {
         key: 'validating_readings',
-        label: 'Validating',
+        label: 'Confirming assigned readings',
         status: 'pending',
       },
     ]);

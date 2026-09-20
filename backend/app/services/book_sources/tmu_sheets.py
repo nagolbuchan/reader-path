@@ -23,9 +23,12 @@ TMU_DEFAULT_SHEETS = [
 
 @dataclass
 class CandidateBook:
+    """Untrusted discovery hit. Not a real book until Google Books validates it."""
+
     title: str
     authors: str = ""
     isbn13: Optional[str] = None
+    source_url: Optional[str] = None
 
 
 def _sheet_urls() -> List[str]:
