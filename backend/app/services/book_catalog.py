@@ -19,7 +19,6 @@ _lock = threading.Lock()
 _active_catalog: Optional[Dict[str, BookRecord]] = None
 
 MIN_READINGS_PER_MODULE = 6
-TARGET_MAX_READINGS_PER_MODULE = 8
 
 
 def start_catalog(seed: Optional[Iterable[BookRecord]] = None) -> Dict[str, BookRecord]:
@@ -215,11 +214,11 @@ def validate_course_readings(
     course: CoursePreview, catalog: Dict[str, BookRecord]
 ) -> Tuple[CoursePreview, List[str]]:
     """
-    Enrich readings with catalog IDs/links.
+    Keep only readings that match the Google Books–validated run catalog.
 
-    Duplicates and unverified slots are repaired by pulling unused books from the
-    verified catalog. Fails only if a module cannot reach MIN unique verified readings.
-    Leftover catalog titles are then distributed round-robin up to the per-module max.
+    Unverified and duplicate readings are dropped (not swapped for unrelated
+    leftover titles). A short module may be padded only from unused validated
+    catalog books for this topic. Fails if a module cannot reach MIN real readings.
     """
     if not catalog:
         raise ValueError(
@@ -238,39 +237,14 @@ def validate_course_readings(
             match = _match_record(reading, catalog)
 
             if not match:
-                replacement = _next_unused(catalog, seen_ids, seen_titles)
-                if not replacement:
-                    repairs.append(
-                        f"{module.module_title}: could not replace unverified "
-                        f"“{reading.title}” (catalog exhausted)"
-                    )
-                    continue
                 repairs.append(
-                    f"{module.module_title}: replaced unverified “{reading.title}” "
-                    f"→ “{replacement.title}”"
+                    f"{module.module_title}: dropped unverified “{reading.title}”"
                 )
-                verified.append(_claim(replacement, seen_ids, seen_titles))
                 continue
 
             if _is_used(match, seen_ids, seen_titles):
-                replacement = _next_unused(catalog, seen_ids, seen_titles)
-                if not replacement:
-                    repairs.append(
-                        f"{module.module_title}: could not replace duplicate "
-                        f"“{match.title}” (catalog exhausted)"
-                    )
-                    continue
                 repairs.append(
-                    f"{module.module_title}: replaced duplicate “{match.title}” "
-                    f"→ “{replacement.title}”"
-                )
-                verified.append(
-                    _claim(
-                        replacement,
-                        seen_ids,
-                        seen_titles,
-                        summary=reading.summary,
-                    )
+                    f"{module.module_title}: dropped duplicate “{match.title}”"
                 )
                 continue
 
@@ -288,46 +262,21 @@ def validate_course_readings(
             if not filler:
                 break
             repairs.append(
-                f"{module.module_title}: filled slot with “{filler.title}”"
+                f"{module.module_title}: padded with topic-sourced “{filler.title}”"
             )
             verified.append(_claim(filler, seen_ids, seen_titles))
 
         if len(verified) < MIN_READINGS_PER_MODULE:
             raise ValueError(
                 f"Module “{module.module_title}” has fewer than "
-                f"{MIN_READINGS_PER_MODULE} unique verified readings after repair "
-                f"(have {len(verified)}; catalog may be too small). "
+                f"{MIN_READINGS_PER_MODULE} unique verified readings "
+                f"(have {len(verified)}; not enough validated topic books). "
                 + ("; ".join(repairs[-5:]) if repairs else "")
             )
 
         new_modules.append(
             module.model_copy(update={"assigned_readings": verified})
         )
-
-    # Distribute leftover catalog books round-robin up to per-module max.
-    readings_by_module: List[List[BookReading]] = [
-        list(m.assigned_readings) for m in new_modules
-    ]
-    made_progress = True
-    while made_progress:
-        made_progress = False
-        for idx, readings in enumerate(readings_by_module):
-            if len(readings) >= TARGET_MAX_READINGS_PER_MODULE:
-                continue
-            leftover = _next_unused(catalog, seen_ids, seen_titles)
-            if not leftover:
-                made_progress = False
-                break
-            repairs.append(
-                f"{new_modules[idx].module_title}: filled leftover “{leftover.title}”"
-            )
-            readings.append(_claim(leftover, seen_ids, seen_titles))
-            made_progress = True
-
-    new_modules = [
-        m.model_copy(update={"assigned_readings": readings})
-        for m, readings in zip(new_modules, readings_by_module)
-    ]
 
     if repairs:
         # Avoid Windows console encode failures on arrows / curly quotes.

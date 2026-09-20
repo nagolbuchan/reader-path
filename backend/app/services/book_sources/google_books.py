@@ -1,4 +1,4 @@
-"""Google Books verified provider."""
+"""Google Books existence validator (not a primary discovery source)."""
 
 from __future__ import annotations
 
@@ -117,7 +117,22 @@ def search_volumes(query: str, max_results: int = 40) -> List[BookRecord]:
     return books
 
 
+def _isbn_matches(cleaned: str, book: BookRecord) -> bool:
+    book_ids = {
+        i
+        for i in (book.isbn13, book.isbn10, isbn13_to_isbn10(book.isbn13))
+        if i
+    }
+    if cleaned in book_ids:
+        return True
+    if len(cleaned) == 13:
+        as10 = isbn13_to_isbn10(cleaned)
+        return bool(as10 and as10 in book_ids)
+    return False
+
+
 def resolve_by_isbn(isbn: str) -> Optional[BookRecord]:
+    """Return a Google Books record only when the ISBN actually matches."""
     cleaned = normalize_isbn(isbn)
     if not cleaned:
         return None
@@ -126,6 +141,6 @@ def resolve_by_isbn(isbn: str) -> Optional[BookRecord]:
     except GoogleBooksError:
         return None
     for book in books:
-        if cleaned in (book.isbn13, book.isbn10):
+        if _isbn_matches(cleaned, book):
             return book
-    return books[0] if books else None
+    return None

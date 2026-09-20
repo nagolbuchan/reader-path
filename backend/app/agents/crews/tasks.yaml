@@ -1,23 +1,27 @@
 librarian_task:
   description: >
     Conduct a thorough search for books on {topic} (category: {category}).
-    Compile a list of **at least 24 and no more than 40 books** from the verified
-    catalog tool (Google Books + Open Library) only.
+    Compile a list of **at least 24 and no more than 40 books** using the
+    Discover and Validate Books Tool only.
 
-    You are given a VERIFIED_BOOKS seed catalog below. Prefer those IDs. Use the
-    verified search tool with refined sub-queries to expand coverage for **5–6 modules
-    with ≥6 distinct readings each** (enough unique titles that most can become assigned
+    You are given a VALIDATED_BOOKS seed catalog below (already proven real via
+    Google Books). Prefer those IDs. Use the discover-and-validate tool with
+    refined sub-queries to expand coverage for **5–6 modules with ≥6 distinct
+    readings each** (enough unique titles that most can become assigned
     readings — target enough for ≥24 course readings).
 
-    VERIFIED_BOOKS:
+    VALIDATED_BOOKS:
     {verified_books}
 
     HARD RULES:
-    - ONLY include books returned by the verified search tool or listed in VERIFIED_BOOKS.
+    - ONLY include books returned by the Discover and Validate Books Tool or listed
+      in VALIDATED_BOOKS. Those records already passed Google Books validation.
     - Never invent titles, authors, or links.
-    - Every book MUST include a stable ID (GoogleBooksID and/or OpenLibraryID), title,
-      authors, brief summary, link, and ISBN13 when available.
-    - Never include books without a valid ID and link.
+    - Never copy a title from a web snippet or search result that the tool did not
+      return as validated. If the tool says mentions could not be validated, drop them.
+    - Every book MUST include a google_books_id, title, authors, brief summary, link,
+      and ISBN13 when available (include OpenLibraryID when the tool provides it).
+    - Never include books without a valid google_books_id and link.
     - Prefer unique titles; never list the same work twice (same ID, ISBN, or title).
     - Mark each book as Primary or Secondary when relevant.
 
@@ -38,17 +42,18 @@ librarian_task:
     - professional: casebooks, practice handbooks, standards, and professional textbooks.
     - religion_theology: canonical/scriptural texts, theology, and reputable commentary
       (not only popular overviews).
-    - other: balanced introductory through advanced works; verified books only.
+    - other: balanced introductory through advanced works; validated books only.
   expected_output: >
-    A structured list of at least 24 books each with stable IDs, title, author, brief summary,
-    link, optional ISBN13, and Primary/Secondary label — all from verified catalogs only.
+    A structured list of at least 24 books each with google_books_id, title, author,
+    brief summary, link, optional ISBN13, and Primary/Secondary label — all Google
+    Books–validated only. No unverified web snippets.
   agent: librarian
 
 course_creator_task:
   description: >
-    Using ONLY the verified book list (with Google Books and/or Open Library IDs) from the
+    Using ONLY the validated book list (each with a google_books_id) from the
     librarian, create a comprehensive course on {topic} (category: {category}).
-    Prefer **5–6 logical modules** (minimum 4 only if the verified list is unusually thin).
+    Prefer **5–6 logical modules** (minimum 4 only if the validated list is unusually thin).
 
     For each module include:
     - Module title
@@ -60,11 +65,12 @@ course_creator_task:
     - `is_legacy_module`: boolean
 
     HARD RULES for readings:
-    - Every reading MUST come from the librarian's verified list and MUST include at least one
-      of `google_books_id` or `open_library_id` (include both and isbn13 when available).
-    - Never invent books or links. If a book is not on the list, do not use it.
+    - Every reading MUST come from the librarian's validated list and MUST include
+      `google_books_id` (include open_library_id and isbn13 when available).
+    - Never invent books or links. If a book is not on the validated list, do not use it.
+    - Never salvage a dropped/unverified snippet title.
     - Every module MUST have **at least 6** objects in `assigned_readings` (prefer 6–8).
-    - Use **as many librarian books as practical**. When the verified list has ≥24 titles,
+    - Use **as many librarian books as practical**. When the validated list has ≥24 titles,
       the course MUST include **at least 24 distinct assigned readings** across all modules.
       Do not leave most of the catalog unused.
     - **No duplicate books anywhere in the course** — each ID, ISBN, and title may appear in
@@ -129,10 +135,10 @@ course_creator_task:
       ]
     }}
   expected_output: >
-    A valid JSON course with preferably 5–6 category-appropriate modules, at least 6 verified
+    A valid JSON course with preferably 5–6 category-appropriate modules, at least 6 validated
     readings per module (target ≥24 distinct readings course-wide when the catalog allows),
-    each including google_books_id and/or open_library_id (plus isbn13/published_year when known),
-    chronological ordering for history courses, and no invented books.
+    each including google_books_id (plus isbn13/published_year when known),
+    chronological ordering for history courses, and no invented or unverified books.
   agent: course_creator
   context:
     - librarian_task

@@ -2,7 +2,7 @@ import asyncio
 import json
 import re
 import uuid
-from typing import Any, Callable, List, Optional
+from typing import Any, Callable, List, Optional, Tuple
 
 from app.agents.crews.crew import ReaderPathCrew
 from app.models.course import CoursePreview
@@ -14,17 +14,23 @@ from app.services.book_catalog import (
     validate_course_readings,
 )
 from app.services.book_cache import set_replacement_pool
-from app.services.book_sources import google_books as gb
 from app.services.book_sources import library_of_congress as loc
 from app.services.book_sources import open_library as ol
 from app.services.book_sources.gutenberg import enrich_course_with_gutenberg
 from app.services.book_sources.merge import format_catalog_for_agent, merge_records
 from app.services.book_sources.resolve import resolve_candidates
 from app.services.book_sources.tmu_sheets import (
+    CandidateBook,
     fetch_tmu_candidates,
     filter_candidates_for_topic,
 )
 from app.services.book_sources.types import BookRecord
+from app.services.book_sources.web_search import (
+    SerperError,
+    candidate_from_record,
+    dedupe_candidates,
+    search_web_candidates,
+)
 from app.services.crew_run_log import (
     CrewRunLogger,
     capture_verbose_trace,
@@ -34,6 +40,9 @@ from app.services.history_order import order_history_course_chronologically
 from app.services.topic_classifier import catalog_queries_for, classify_topic
 
 ProgressCallback = Callable[[str, str], None]
+
+_MAX_CANDIDATES_TO_VALIDATE = 80
+_MIN_VALIDATED_CATALOG = 12
 
 
 def _extract_json_object(text: str) -> dict:
@@ -74,74 +83,99 @@ def parse_crew_course_result(result: Any) -> CoursePreview:
     return CoursePreview.model_validate(data)
 
 
-def _collect_books(topic: str, category: str) -> List[BookRecord]:
-    """
-    Seed verified catalog from Google Books, Open Library, and Library of
-    Congress, then resolve TMU sheet candidates into the same catalog.
-    """
-    collected: List[BookRecord] = []
+def _catalog_suggestion_candidates(topic: str, category: str) -> List[CandidateBook]:
+    """Open Library / LoC may suggest titles; they are not trusted until GB validates."""
+    suggestions: List[CandidateBook] = []
+    queries = catalog_queries_for(topic, category)[:2]  # type: ignore[arg-type]
+    for query in queries:
+        try:
+            for rec in ol.search_open_library(query, max_results=15):
+                suggestions.append(candidate_from_record(rec))
+        except ol.OpenLibraryError as exc:
+            print(f"Open Library suggestion pass skipped: {exc}")
+
+        try:
+            for rec in loc.search_loc(query, max_results=15):
+                suggestions.append(candidate_from_record(rec))
+        except loc.LocError as exc:
+            print(f"Library of Congress suggestion pass skipped: {exc}")
+    return suggestions
+
+
+def _discover_candidates(
+    topic: str, category: str
+) -> Tuple[List[CandidateBook], List[str], List[str]]:
+    """Untrusted discovery: web + TMU + optional OL/LoC suggestions."""
+    collected: List[CandidateBook] = []
     errors: List[str] = []
     sources_used: List[str] = []
 
-    for query in catalog_queries_for(topic, category):  # type: ignore[arg-type]
-        try:
-            books = gb.search_volumes(query, max_results=40)
-            if books:
-                sources_used.append("google_books")
-                collected.extend(books)
-        except gb.GoogleBooksError as exc:
-            errors.append(f"Google Books: {exc}")
-
-        try:
-            books = ol.search_open_library(query, max_results=40)
-            if books:
-                sources_used.append("open_library")
-                collected.extend(books)
-        except ol.OpenLibraryError as exc:
-            errors.append(f"Open Library: {exc}")
-
-        try:
-            books = loc.search_loc(query, max_results=40)
-            if books:
-                sources_used.append("library_of_congress")
-                collected.extend(books)
-        except loc.LocError as exc:
-            errors.append(f"Library of Congress: {exc}")
-
-    # TMU curriculum candidates → resolve via OL / GB / LOC
     try:
-        candidates = fetch_tmu_candidates()
-        filtered = filter_candidates_for_topic(candidates, topic, limit=30)
-        resolved = resolve_candidates(filtered)
-        if resolved:
+        web = search_web_candidates(topic, category)
+        if web:
+            sources_used.append("web")
+            collected.extend(web)
+            print(f"Web discovery found {len(web)} candidate(s) for topic={topic!r}")
+    except SerperError as exc:
+        errors.append(f"Serper: {exc}")
+        print(f"Web discovery skipped: {exc}")
+
+    try:
+        tmu = filter_candidates_for_topic(fetch_tmu_candidates(), topic, limit=30)
+        if tmu:
             sources_used.append("tmu_sheets")
-            collected.extend(resolved)
-            print(f"Resolved {len(resolved)} TMU candidate books for topic={topic!r}")
+            collected.extend(tmu)
+            print(f"TMU sheets contributed {len(tmu)} candidate(s) for topic={topic!r}")
     except Exception as exc:
         print(f"TMU candidate pass skipped: {exc}")
 
-    merged = list(merge_records(collected).values())
-    print(
-        "Catalog sources:",
-        sorted(set(sources_used)),
-        f"unique books={len(merged)}",
-    )
-
-    if not merged:
-        detail = "; ".join(errors[:3]) if errors else "no results"
-        raise ValueError(
-            "Could not build a verified book catalog from Google Books / "
-            "Open Library / Library of Congress. "
-            f"({detail})"
+    suggestions = _catalog_suggestion_candidates(topic, category)
+    if suggestions:
+        sources_used.append("catalog_suggestions")
+        collected.extend(suggestions)
+        print(
+            f"OL/LoC contributed {len(suggestions)} untrusted suggestion(s) "
+            f"for topic={topic!r}"
         )
 
-    if len(merged) < 12:
+    deduped = dedupe_candidates(collected)
+    print(
+        "Discovery sources:",
+        sorted(set(sources_used)),
+        f"unique candidates={len(deduped)}",
+    )
+    return deduped, errors, sources_used
+
+
+def _validate_candidates(
+    candidates: List[CandidateBook],
+    errors: List[str],
+) -> List[BookRecord]:
+    """Promote candidates only after Google Books ISBN or strict-match validation."""
+    to_validate = candidates[:_MAX_CANDIDATES_TO_VALIDATE]
+    resolved = resolve_candidates(to_validate)
+    merged = list(merge_records(resolved).values())
+    print(f"Google Books validated {len(merged)} of {len(to_validate)} candidate(s)")
+
+    if not merged:
+        detail = "; ".join(errors[:3]) if errors else "no Google Books matches"
+        raise ValueError(
+            "Could not validate any real books via Google Books after web "
+            f"discovery. ({detail})"
+        )
+
+    if len(merged) < _MIN_VALIDATED_CATALOG:
         raise ValueError(
             "Could not find enough verified books for this topic "
             f"(found {len(merged)}). Try a broader topic, or check API quota."
         )
-
     return merged
+
+
+def _collect_books(topic: str, category: str) -> List[BookRecord]:
+    """Discover untrusted candidates, then validate through Google Books."""
+    candidates, errors, _sources = _discover_candidates(topic, category)
+    return _validate_candidates(candidates, errors)
 
 
 class CourseGenerationService:
@@ -170,8 +204,15 @@ class CourseGenerationService:
             run_log.category = category
             print("classified category:", category)
 
-            progress("searching_books", "Searching verified catalogs")
-            collected = await asyncio.to_thread(_collect_books, topic, category)
+            progress("discovering_books", "Searching the web for books")
+            candidates, discover_errors, _sources = await asyncio.to_thread(
+                _discover_candidates, topic, category
+            )
+
+            progress("validating_books", "Validating books exist")
+            collected = await asyncio.to_thread(
+                _validate_candidates, candidates, discover_errors
+            )
             catalog = start_catalog(collected)
             verified_books = format_catalog_for_agent(
                 list(catalog.values())[:40],
@@ -200,7 +241,7 @@ class CourseGenerationService:
             course = parse_crew_course_result(result)
             run_log.course_from_agents = course.model_dump()
 
-            progress("validating_readings", "Validating & repairing readings")
+            progress("validating_readings", "Confirming assigned readings")
             live_catalog = get_catalog() or catalog
             course, repairs = validate_course_readings(course, live_catalog)
             run_log.repairs = list(repairs or [])
